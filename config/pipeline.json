@@ -1,0 +1,26 @@
+{
+  "$schema": "../src/verra_pipeline/formats/pipeline.schema.json",
+  "root": "..",
+  "sources": {
+    "verra": {
+      "landing": "data/landing",
+      "file_name": "{prefix}_{date}.csv"
+    }
+  },
+  "paths": {
+    "schema": "schema",
+    "lake": "lake",
+    "warehouse": "warehouse/verra.duckdb"
+  },
+  "lake": {
+    "table_file": "{layer}/{table}/snapshot_date={date}/data.parquet",
+    "manifest_file": "_manifests/snapshot_date={date}/{stage}.json"
+  },
+  "warehouse": {
+    "current_view": "{table}",
+    "history_view": "{table}_history"
+  },
+  "ingest": {
+    "max_rejected_share": 0.01
+  }
+}

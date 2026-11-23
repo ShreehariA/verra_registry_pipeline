@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" pages="1">
+<mxfile host="app.diagrams.net" pages="2">
   <diagram id="data-as-built" name="1 · Data (as built)">
     <mxGraphModel dx="1660" dy="941" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="520" background="#FFFFFF" math="0" shadow="0">
       <root>
@@ -117,6 +117,116 @@
         </mxCell>
         <mxCell id="data-note" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Medallion data architecture&lt;/b&gt;: landing → bronze → silver → gold &amp;nbsp;·&amp;nbsp; one command, &lt;i&gt;verra build&lt;/i&gt;, with its settings in pipeline.toml &amp;nbsp;·&amp;nbsp; every layer is kept per snapshot date, and a re-run writes byte-identical files&lt;br&gt;&lt;b&gt;Readers see only finished snapshots&lt;/b&gt;: gold is written only when every error check passes, and the manifest is written last &amp;nbsp;·&amp;nbsp; SQL: &lt;i&gt;verra query&lt;/i&gt; &amp;nbsp;·&amp;nbsp; &lt;b&gt;On Google Cloud&lt;/b&gt;: one Cloud Run job, one Cloud Run dashboard, one Cloud Storage bucket" vertex="1">
           <mxGeometry height="60" width="1620" x="40" y="410" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="infra-as-built" name="2 · Infra (as built)">
+    <mxGraphModel dx="1623" dy="920" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="700" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="infra-title" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=18;fontStyle=1;align=left;verticalAlign=top;" value="Verra Registry Pipeline — infrastructure, as built" vertex="1">
+          <mxGeometry height="30" width="600" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" value="" vertex="1">
+          <mxGeometry height="64" width="892" x="728" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-title" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="&lt;b&gt;Legend&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="52" x="742" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-service" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="20" width="36" x="812" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-service-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Service" vertex="1">
+          <mxGeometry height="20" width="50" x="854" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-store" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="36" x="922" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-store-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Data store" vertex="1">
+          <mxGeometry height="20" width="70" x="964" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-external_file" parent="1" style="shape=document;boundedLbl=1;size=0;dashed=1;dashPattern=6 4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="36" x="1052" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-external_file-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="External file" vertex="1">
+          <mxGeometry height="20" width="89" x="1094" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-actor" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=6;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="10" x="1201" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-actor-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="User" vertex="1">
+          <mxGeometry height="20" width="31" x="1217" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-data" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1266" y="52" as="sourcePoint" />
+            <mxPoint x="1306" y="52" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="infra-legend-data-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Data flow" vertex="1">
+          <mxGeometry height="20" width="63" x="1312" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-control" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=4 3;endArrow=open;endFill=0;startArrow=none;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1393" y="52" as="sourcePoint" />
+            <mxPoint x="1433" y="52" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="infra-legend-control-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Trigger" vertex="1">
+          <mxGeometry height="20" width="50" x="1439" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-boundary" parent="1" style="rounded=1;arcSize=2;html=1;whiteSpace=wrap;fillColor=none;strokeColor=#000000;strokeWidth=1;dashed=1;dashPattern=6 4;fontFamily=Helvetica;fontColor=#000000;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=4;" value="" vertex="1">
+          <mxGeometry height="20" width="36" x="1507" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-legend-boundary-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Boundary" vertex="1">
+          <mxGeometry height="20" width="57" x="1549" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp" parent="1" style="rounded=1;arcSize=2;html=1;whiteSpace=wrap;fillColor=none;strokeColor=#000000;strokeWidth=1;dashed=1;dashPattern=6 4;fontFamily=Helvetica;fontColor=#000000;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=4;" value="Google Cloud project · us-central1" vertex="1">
+          <mxGeometry height="470" width="1060" x="300" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="operator" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Operator" vertex="1">
+          <mxGeometry height="70" width="30" x="40" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="src" parent="1" style="shape=document;boundedLbl=1;size=0;dashed=1;dashPattern=6 4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Verra Registry&lt;br&gt;daily export (3 CSVs)" vertex="1">
+          <mxGeometry height="70" width="170" x="40" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="landing" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Cloud Storage&lt;/b&gt;&lt;br&gt;bucket: landing/&lt;br&gt;raw files" vertex="1">
+          <mxGeometry height="70" width="170" x="340" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="jobs" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Cloud Run job&lt;/b&gt;&lt;br&gt;verra-pipeline&lt;br&gt;runs verra build" vertex="1">
+          <mxGeometry height="70" width="170" x="610" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="lake" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Cloud Storage&lt;/b&gt;&lt;br&gt;same bucket: lake/&lt;br&gt;bronze · silver · gold" vertex="1">
+          <mxGeometry height="70" width="170" x="610" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="streamlit" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Cloud Run service&lt;/b&gt;&lt;br&gt;verra-dashboard&lt;br&gt;Streamlit + DuckDB" vertex="1">
+          <mxGeometry height="70" width="170" x="1150" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="people" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=6;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Analysts" vertex="1">
+          <mxGeometry height="70" width="30" x="1490" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="i-drop" edge="1" parent="1" source="src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="landing" value="daily files">
+          <mxGeometry relative="1" x="-0.31" as="geometry" />
+        </mxCell>
+        <mxCell id="i-run" edge="1" parent="1" source="operator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;dashed=1;dashPattern=4 3;endArrow=open;endFill=0;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="jobs" value="deploy/gcp.sh run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="i-read" edge="1" parent="1" source="landing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="jobs" value="read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="i-lake" edge="1" parent="1" source="jobs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=block;startFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="lake" value="read / write">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="i-dash" edge="1" parent="1" source="lake" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="streamlit" value="read-only mount">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="i-use1" edge="1" parent="1" source="streamlit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="people" value="public URL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-note" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Created and removed by one script&lt;/b&gt;: deploy/gcp.sh up · run · down, each with --dry-run &amp;nbsp;·&amp;nbsp; &lt;b&gt;One image&lt;/b&gt;, built by Cloud Build into Artifact Registry, runs both the job and the dashboard&lt;br&gt;&lt;b&gt;Security&lt;/b&gt;: two service accounts, each with one role on the bucket; the dashboard's mount is read-only &amp;nbsp;·&amp;nbsp; &lt;b&gt;CI&lt;/b&gt;: GitHub Actions runs make check &amp;nbsp;·&amp;nbsp; the dashboard scales to zero" vertex="1">
+          <mxGeometry height="60" width="1580" x="40" y="610" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

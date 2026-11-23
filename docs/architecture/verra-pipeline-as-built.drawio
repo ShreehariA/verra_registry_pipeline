@@ -1,0 +1,124 @@
+<mxfile host="app.diagrams.net" pages="1">
+  <diagram id="data-as-built" name="1 · Data (as built)">
+    <mxGraphModel dx="1660" dy="941" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="520" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="data-title" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=18;fontStyle=1;align=left;verticalAlign=top;" value="Verra Registry Pipeline — data architecture, as built" vertex="1">
+          <mxGeometry height="30" width="600" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" value="" vertex="1">
+          <mxGeometry height="64" width="654" x="1006" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-title" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="&lt;b&gt;Legend&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="52" x="1020" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-service" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="20" width="36" x="1090" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-service-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Process" vertex="1">
+          <mxGeometry height="20" width="50" x="1132" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-store" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="36" x="1200" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-store-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Data layer" vertex="1">
+          <mxGeometry height="20" width="70" x="1242" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-external_file" parent="1" style="shape=document;boundedLbl=1;size=0;dashed=1;dashPattern=6 4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="36" x="1330" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-external_file-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Source files" vertex="1">
+          <mxGeometry height="20" width="82" x="1372" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-actor" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=6;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="" vertex="1">
+          <mxGeometry height="24" width="10" x="1472" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-actor-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="User" vertex="1">
+          <mxGeometry height="20" width="31" x="1488" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-legend-data" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1537" y="52" as="sourcePoint" />
+            <mxPoint x="1577" y="52" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="data-legend-data-text" parent="1" style="text;html=1;whiteSpace=wrap;fillColor=none;strokeColor=none;fontFamily=Helvetica;fontColor=#000000;fontSize=11;align=left;verticalAlign=middle;" value="Data flow" vertex="1">
+          <mxGeometry height="20" width="63" x="1583" y="42" as="geometry" />
+        </mxCell>
+        <mxCell id="verra" parent="1" style="shape=document;boundedLbl=1;size=0;dashed=1;dashPattern=6 4;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Verra Registry&lt;br&gt;daily export&lt;br&gt;3 CSV files" vertex="1">
+          <mxGeometry height="80" width="130" x="40" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="landing" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Landing&lt;/b&gt;&lt;br&gt;raw CSV files&lt;br&gt;never changed" vertex="1">
+          <mxGeometry height="80" width="130" x="210" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ingest" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Ingest&lt;/b&gt;&lt;br&gt;check all 3 files&lt;br&gt;before writing&lt;br&gt;&lt;i&gt;ingest.py&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="130" x="380" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="bronze" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Bronze&lt;/b&gt;&lt;br&gt;rows as delivered&lt;br&gt;+ file, line, checksum" vertex="1">
+          <mxGeometry height="80" width="130" x="550" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clean" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Clean&lt;/b&gt;&lt;br&gt;parse every value&lt;br&gt;flag, never drop&lt;br&gt;&lt;i&gt;sql/silver/&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="130" x="720" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="silver" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Silver&lt;/b&gt;&lt;br&gt;one clean table&lt;br&gt;per export" vertex="1">
+          <mxGeometry height="80" width="130" x="890" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="model" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Model + check&lt;/b&gt;&lt;br&gt;gold built in memory&lt;br&gt;kept if checks pass&lt;br&gt;&lt;i&gt;sql/gold/, checks.sql&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="130" x="1060" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="gold" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Gold&lt;/b&gt;&lt;br&gt;star schema&lt;br&gt;+ 3 marts" vertex="1">
+          <mxGeometry height="80" width="130" x="1230" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="use" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Dashboard&lt;/b&gt;&lt;br&gt;the 3 questions&lt;br&gt;+ data quality&lt;br&gt;&lt;i&gt;dashboard/app.py&lt;/i&gt;" vertex="1">
+          <mxGeometry height="80" width="130" x="1400" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="analysts" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=6;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Analysts" vertex="1">
+          <mxGeometry height="70" width="30" x="1570" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="quarantine" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Quarantine&lt;/b&gt;&lt;br&gt;bad lines, reason&lt;br&gt;+ exact text" vertex="1">
+          <mxGeometry height="80" width="130" x="380" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="quality" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Quality results&lt;/b&gt;&lt;br&gt;every check&lt;br&gt;and its counts" vertex="1">
+          <mxGeometry height="80" width="130" x="1060" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="verra-landing" edge="1" parent="1" source="verra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="landing" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="landing-ingest" edge="1" parent="1" source="landing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="ingest" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ingest-bronze" edge="1" parent="1" source="ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="bronze" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bronze-clean" edge="1" parent="1" source="bronze" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="clean" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="clean-silver" edge="1" parent="1" source="clean" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="silver" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="silver-model" edge="1" parent="1" source="silver" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="model" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="model-gold" edge="1" parent="1" source="model" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="gold" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gold-use" edge="1" parent="1" source="gold" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="use" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="use-analysts" edge="1" parent="1" source="use" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="analysts" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bad-rows" edge="1" parent="1" source="ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="quarantine" value="bad rows">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="checks" edge="1" parent="1" source="model" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=10;labelBackgroundColor=#FFFFFF;endArrow=block;endFill=1;startArrow=none;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="quality" value="results">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data-note" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Medallion data architecture&lt;/b&gt;: landing → bronze → silver → gold &amp;nbsp;·&amp;nbsp; one command, &lt;i&gt;verra build&lt;/i&gt;, with its settings in pipeline.toml &amp;nbsp;·&amp;nbsp; every layer is kept per snapshot date, and a re-run writes byte-identical files&lt;br&gt;&lt;b&gt;Readers see only finished snapshots&lt;/b&gt;: gold is written only when every error check passes, and the manifest is written last &amp;nbsp;·&amp;nbsp; SQL: &lt;i&gt;verra query&lt;/i&gt; &amp;nbsp;·&amp;nbsp; &lt;b&gt;On Google Cloud&lt;/b&gt;: one Cloud Run job, one Cloud Run dashboard, one Cloud Storage bucket" vertex="1">
+          <mxGeometry height="60" width="1620" x="40" y="410" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

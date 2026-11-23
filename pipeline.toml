@@ -1,0 +1,35 @@
+# Settings for `verra build`: where the files are, how they are named, and what each
+# export must contain. Paths are relative to this file; `--landing` and `--lake`
+# override them for one run.
+
+[paths]
+landing = "data/landing"              # raw daily drops; only ever read
+lake = "lake"                         # Parquet: one folder per layer, table and snapshot date
+
+[ingest]
+file_name = "{prefix}_{date}.csv"     # {date} is YYYY-MM-DD
+max_rejected_share = 0.01             # refuse a file when more than 1% of its lines can't be read
+
+# One table per export. Column names are the file's headers, normalised
+# ("Retirement QTY" becomes retirement_qty), and silver reads only the columns listed here.
+# A missing required column stops the run; a missing optional one is loaded empty and reported.
+# If Verra renames a header, map the new name to the old one, for example:
+#   aliases = { quantity_retired = "retirement_qty" }
+
+[sources.issuances]
+prefix = "VerraIssuances"
+required = ["issuance_date", "project_id", "project_name", "vintage", "serial_number", "units"]
+optional = ["sectoral_scope", "methodology", "region", "country", "state_province"]
+
+[sources.retirements]
+prefix = "VerraRetirements"
+required = [
+    "retirement_date", "project_id", "project_name", "vintage", "serial_number", "retirement_qty",
+    "beneficial_owner",
+]
+optional = ["sectoral_scope", "methodology", "region", "country", "state_province"]
+
+[sources.cancellations]
+prefix = "VerraCancelled"
+required = ["cancellation_date", "project_id", "project_name", "vintage", "serial_number", "cancellation_qty"]
+optional = ["sectoral_scope", "methodology", "region", "country", "state_province"]

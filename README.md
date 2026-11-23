@@ -1,75 +1,41 @@
 # Verra Registry Pipeline
 
 Turns the three daily Verra registry exports into a clean, tested data model, with a dashboard on top:
-- **issuances:** credits issued to a project
-- **retirements:** credits claimed against emissions
-- **cancellations:** credits removed for administrative reasons
+- **issuances:** credits issued to a project;
+- **retirements:** credits claimed against emissions;
+- **cancellations:** credits removed for administrative reasons.
 
-The work is built step by step; each step has a short explainer in [`docs/steps/`](docs/steps/).
-
-**Nothing structural is hard-coded:**
-- Tables and columns are declared in JSON under [`schema/`](schema/README.md).
-- Locations, file-name patterns and thresholds are declared in [`config/pipeline.json`](config/README.md).
+> Being rebuilt as a lean version. The full README (data model, decisions, live demo) comes with the docs step.
 
 ## Quick start
 
-Needs [uv](https://docs.astral.sh/uv/) and Python 3.12 or newer (uv installs Python 3.13 if it is missing).
+Needs [uv](https://docs.astral.sh/uv/); it installs Python 3.13 if it is missing.
 
 ```bash
-make setup     # create .venv with the pinned dependencies
+make setup     # create .venv with the locked dependencies
 make check     # lint, type-check and run every test
-make ingest    # load the newest complete snapshot into bronze
+make build     # build every layer from the newest complete snapshot in data/landing
 make query SQL="select count(*) from bronze.retirements"
-uv run verra schema --table retirements    # what a table looks like, from schema/
 ```
 
-`verra` finds `config/pipeline.json` from any folder in the repository. Use `--config FILE` or the `VERRA_CONFIG` environment variable to pick another config.
+To load another snapshot, put its three files in `data/landing/` (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`) and run `make build`. The newest date with all three files is loaded. `uv run verra build --snapshot 2026-11-17 --landing path/to/folder` picks a date or a folder for one run.
 
-## Running on another snapshot
+## How it works
 
-1. Put the three files for a date in `data/landing/`:
-   - `VerraIssuances_<YYYY-MM-DD>.csv`
-   - `VerraRetirements_<YYYY-MM-DD>.csv`
-   - `VerraCancelled_<YYYY-MM-DD>.csv`
-2. Run `make ingest`. The newest date that has every expected file is loaded, and the summary says which one.
+Medallion layers, one Parquet file per table and snapshot date:
+- **landing:** the raw files, only ever read;
+- **bronze:** every row as delivered, with the file, line and checksum it came from; unreadable records go to `bronze.rejected_records` with the reason and their exact text;
+- **silver** and **gold:** cleaned tables and the model for the dashboard (in progress).
 
-To choose a date or a folder for one run:
-
-```bash
-uv run verra ingest --snapshot 2026-11-17 --landing path/to/folder
-```
-
-If Verra renames a header or adds a column, see the "common changes" table in [`schema/README.md`](schema/README.md); it is a JSON edit, not a code change. The raw files are only ever read, never changed.
-
-## Architecture
-
-[`docs/architecture/verra-pipeline.drawio`](docs/architecture/verra-pipeline.drawio) holds two diagrams; open it in draw.io or at app.diagrams.net.
-- **Data:** the medallion layers and the process between each pair: landing → ingest → bronze → clean → silver → model + check → gold.
-- **Infra:** the Google Cloud services that run it. Infrastructure uses Terraform, security uses IAM, and CI/CD uses GitHub Actions.
-
-## Status
-
-| Step | What | State |
-|---|---|---|
-| 1 | Ingest → Bronze ([explainer](docs/steps/01-ingest.md)) | done |
-| 1b | Tables in `schema/`, locations in `config/` ([explainer](docs/steps/01b-schema-and-config.md)) | done |
-| 2 | Cleaning library: dates, quantities, serial numbers, names | next |
-| 3 | Clean → Silver (3NF tables, declared in `schema/silver/`) | |
-| 4 | Model + check → Gold (star schema, summary tables, quality gate; `schema/gold/`) | |
-| 5 | One command for everything, run catalog, idempotency checks | |
-| 6 | Streamlit dashboard | |
-| 7 | Terraform and Google Cloud deployment | |
-| 8 | Final write-up: data model, decisions, assumptions, next steps | |
+Settings live in [`pipeline.toml`](pipeline.toml): paths, the file-name pattern, the reject budget and the columns each export must have. The raw files are never changed.
 
 ## Layout
 
 ```
-config/                  where things are and how they are named (pipeline.json)
-schema/                  what every table looks like, one JSON file per table and layer
-data/landing/            raw Verra files, never modified
-src/verra_pipeline/      the pipeline (one package per stage; formats/ holds the JSON rules)
-tests/                   unit and integration tests
-docs/architecture/       diagrams
-docs/steps/              one explainer per build step
-lake/, warehouse/        generated by the pipeline (git-ignored; `make clean` deletes them)
+pipeline.toml          settings: paths, file names, required columns
+src/verra_pipeline/    the pipeline: ingest.py, lake.py, config.py, cli.py
+tests/                 tests on a fixture snapshot dated 2030-01-15
+data/landing/          raw Verra files, never modified
+docs/architecture/     diagrams of the data flow and the Google Cloud design
+lake/                  generated (git-ignored; `make clean` deletes it)
 ```

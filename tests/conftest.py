@@ -1,44 +1,19 @@
-"""Shared fixtures."""
-
+import dataclasses
 from pathlib import Path
 
 import pytest
 
-from tests.verra_files import (
-    CANCELLATION_HEADER,
-    CANCELLATION_ROWS,
-    CUT_OFF_RETIREMENT,
-    ISSUANCE_HEADER,
-    ISSUANCE_ROWS,
-    RETIREMENT_HEADER,
-    RETIREMENT_ROWS,
-    SCHEMA_DIR,
-    file_name,
-    write_csv,
-)
-from verra_pipeline.schema import SchemaRegistry
+from tests.verra_files import REPO, write_snapshot
+from verra_pipeline.config import Config, load
 
 
 @pytest.fixture
-def landing(tmp_path: Path) -> Path:
-    """A landing folder holding one complete snapshot with the real exports' quirks:
-    a byte-order mark, a line break inside a quoted field and a cut-off last record
-    in retirements, and CRLF line endings in cancellations."""
-    folder = tmp_path / "landing"
-    folder.mkdir()
-    write_csv(folder / file_name("VerraIssuances"), ISSUANCE_HEADER, ISSUANCE_ROWS)
-    write_csv(
-        folder / file_name("VerraRetirements"),
-        RETIREMENT_HEADER,
-        RETIREMENT_ROWS,
-        bom=True,
-        trailing=CUT_OFF_RETIREMENT,
+def config(tmp_path: Path) -> Config:
+    """The real pipeline.toml, reading a fixture snapshot and writing into a temporary folder. The reject
+    budget is generous because the fixture files are tiny: retirements has one cut-off line in four."""
+    return dataclasses.replace(
+        load(REPO / "pipeline.toml"),
+        landing=write_snapshot(tmp_path / "landing"),
+        lake=tmp_path / "lake",
+        max_rejected_share=0.5,
     )
-    write_csv(folder / file_name("VerraCancelled"), CANCELLATION_HEADER, CANCELLATION_ROWS, ending="\r\n")
-    return folder
-
-
-@pytest.fixture(scope="session")
-def registry() -> SchemaRegistry:
-    """The real schema folder, loaded once for the whole test run."""
-    return SchemaRegistry.load(SCHEMA_DIR)

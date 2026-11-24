@@ -1,7 +1,8 @@
 """Ingest: load one snapshot's raw files into the bronze layer, exactly as delivered.
 
-Every file is read and checked before anything is written, so a bad file never leaves
-bronze holding a mix of two snapshots. Bronze changes no value: cleaning is silver's job.
+Every file is read and checked first, and bronze is only loaded into the build's in-memory
+database: nothing is written until the whole build has passed its checks (see cli.build).
+Bronze changes no value: cleaning is silver's job.
 """
 
 from __future__ import annotations
@@ -21,7 +22,6 @@ import pyarrow as pa
 
 from verra_pipeline import PipelineError
 from verra_pipeline.config import Config, Source
-from verra_pipeline.lake import partition, write_json, write_parquet
 
 CUT_OFF = "; the file ends inside this record, so it was probably cut off"
 
@@ -49,20 +49,15 @@ class File:
     findings: list[str] = field(default_factory=list)
 
 
-def ingest(config: Config, wanted: date | None = None) -> dict[str, Any]:
-    """Load the snapshot into bronze and return its manifest: what was read, kept and set aside."""
+def ingest(con: duckdb.DuckDBPyConnection, config: Config, wanted: date | None = None) -> dict[str, Any]:
+    """Load the snapshot into bronze tables in `con`; return its manifest: what was read, kept, set aside."""
     day, paths = find_snapshot(config, wanted)
     files = [read(paths[source.table], source, config.max_rejected_share) for source in config.sources]
-    with duckdb.connect() as con:
-        con.execute("SET threads = 1")  # one thread: the same input always gives the same bytes
-        for file in files:
-            target = partition(config.lake, "bronze", file.source.table, day)
-            write_parquet(con.from_arrow(_bronze(file, day)), target)
-        target = partition(config.lake, "bronze", "rejected_records", day)
-        write_parquet(con.from_arrow(_quarantine(files, day)), target)
-    manifest = {"snapshot_date": day.isoformat(), "files": [_manifest_entry(file) for file in files]}
-    write_json(manifest, config.lake / "_manifests" / f"snapshot_date={day}" / "ingest.json")
-    return manifest
+    con.execute("CREATE SCHEMA bronze")
+    for file in files:
+        con.from_arrow(_bronze(file, day)).create(f"bronze.{file.source.table}")
+    con.from_arrow(_quarantine(files, day)).create("bronze.rejected_records")
+    return {"snapshot_date": day.isoformat(), "files": [_manifest_entry(file) for file in files]}
 
 
 def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dict[str, Path]]:

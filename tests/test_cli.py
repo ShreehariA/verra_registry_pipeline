@@ -10,9 +10,11 @@ from verra_pipeline.cli import main
 @pytest.fixture
 def settings(tmp_path: Path) -> Path:
     """A copy of pipeline.toml in a temporary folder, so its relative paths (landing and lake) both
-    land in that folder. The budget is generous because the fixture files are tiny."""
+    land in that folder; the SQL stays the repository's. The budget is generous because the fixture
+    files are tiny."""
     path = tmp_path / "pipeline.toml"
     text = (REPO / "pipeline.toml").read_text(encoding="utf-8")
+    text = text.replace('sql = "sql"', f'sql = "{(REPO / "sql").as_posix()}"')
     path.write_text(text.replace("max_rejected_share = 0.01", "max_rejected_share = 0.5"), encoding="utf-8")
     write_snapshot(tmp_path / "data" / "landing")
     return path
@@ -25,6 +27,7 @@ def test_build_reports_what_it_loaded_and_query_reads_it(
     report = capsys.readouterr().out
     assert "Snapshot 2030-01-15" in report
     assert "line 5 quarantined" in report
+    assert "Quality gate passed" in report
 
     sql = (
         "select string_agg(_source_line::varchar, '-' order by _source_line) as lines from bronze.retirements"
@@ -39,7 +42,7 @@ def test_query_reads_the_newest_finished_snapshot(settings: Path, capsys: pytest
     for day in ("2030-01-15", "2030-01-14", "2030-01-16"):
         assert main(["--config", str(settings), "build", "--snapshot", day]) == 0
     # as if the 2030-01-16 build had stopped before its last step
-    (settings.parent / "lake" / "_manifests" / "snapshot_date=2030-01-16" / "ingest.json").unlink()
+    (settings.parent / "lake" / "_manifests" / "snapshot_date=2030-01-16" / "build.json").unlink()
     capsys.readouterr()
 
     sql = "select distinct _snapshot_date::varchar as day from bronze.issuances"

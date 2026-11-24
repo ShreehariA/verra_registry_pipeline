@@ -12,6 +12,11 @@ lake/
 # macOS
 .DS_Store
 
+# Terraform's downloads, and its record of what the cloud demo created (keep that until `deploy/gcp.sh down`)
+.terraform/
+*.tfstate
+*.tfstate.*
+
 # Your own experiments
 scratch/
 

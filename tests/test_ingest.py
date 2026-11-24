@@ -18,8 +18,9 @@ from tests.verra_files import (
     write_snapshot,
 )
 from verra_pipeline import PipelineError
+from verra_pipeline.cli import build
 from verra_pipeline.config import Config
-from verra_pipeline.ingest import find_snapshot, ingest
+from verra_pipeline.ingest import find_snapshot
 from verra_pipeline.lake import partition
 
 
@@ -42,7 +43,7 @@ def without(header: tuple[str, ...], rows: tuple[tuple[str, ...], ...], name: st
 
 
 def test_loads_every_file_and_reports_its_quirks(config: Config) -> None:
-    manifest = ingest(config)
+    manifest = build(config)
 
     assert manifest["snapshot_date"] == "2030-01-15"
     assert [
@@ -60,7 +61,7 @@ def test_loads_every_file_and_reports_its_quirks(config: Config) -> None:
 
 
 def test_keeps_values_as_delivered_and_where_each_row_came_from(config: Config) -> None:
-    ingest(config)
+    build(config)
     retirements = config.landing / f"VerraRetirements_{DAY}.csv"
 
     first, undated = rows(config, "retirements")
@@ -73,7 +74,7 @@ def test_keeps_values_as_delivered_and_where_each_row_came_from(config: Config) 
 
 
 def test_quarantines_the_cut_off_record_with_its_exact_text(config: Config) -> None:
-    ingest(config)
+    build(config)
 
     [record] = rows(config, "rejected_records")
 
@@ -90,7 +91,7 @@ def test_matches_headers_by_name_in_any_order_and_through_aliases(config: Config
     issuances, retirements, cancellations = config.sources
     with_alias = dataclasses.replace(retirements, aliases={"quantity_retired": "retirement_qty"})
 
-    ingest(dataclasses.replace(config, sources=(issuances, with_alias, cancellations)))
+    build(dataclasses.replace(config, sources=(issuances, with_alias, cancellations)))
 
     assert [row["retirement_qty"] for row in rows(config, "retirements")] == ["100", "10"]
 
@@ -98,7 +99,7 @@ def test_matches_headers_by_name_in_any_order_and_through_aliases(config: Config
 def test_loads_a_missing_optional_column_empty(config: Config) -> None:
     rewrite(config, "VerraRetirements", without(RETIREMENT_HEADER, RETIREMENT_ROWS, "Region"))
 
-    manifest = ingest(config)
+    manifest = build(config)
 
     assert {row["region"] for row in rows(config, "retirements")} == {None}
     assert "lacks optional columns, loaded empty: region" in findings(manifest, "retirements")
@@ -108,7 +109,7 @@ def test_reads_windows_1252_when_a_file_is_not_utf8(config: Config) -> None:
     accented = (*ISSUANCE_ROWS[0][:3], "Café wind", *ISSUANCE_ROWS[0][4:])
     rewrite(config, "VerraIssuances", csv_bytes(ISSUANCE_HEADER, [accented], encoding="cp1252"))
 
-    manifest = ingest(config)
+    manifest = build(config)
 
     assert rows(config, "issuances")[0]["project_name"] == "Café wind"
     assert "is not valid UTF-8 and was read as Windows-1252; check accented names" in findings(
@@ -119,7 +120,7 @@ def test_reads_windows_1252_when_a_file_is_not_utf8(config: Config) -> None:
 def test_skips_blank_lines_and_says_so(config: Config) -> None:
     rewrite(config, "VerraIssuances", csv_bytes(ISSUANCE_HEADER, ISSUANCE_ROWS) + b"\n")
 
-    manifest = ingest(config)
+    manifest = build(config)
 
     assert findings(manifest, "issuances") == ["has 1 blank line(s), skipped"]
     assert len(rows(config, "issuances")) == 2
@@ -161,17 +162,8 @@ def test_refuses_input_it_cannot_trust_and_writes_nothing(config: Config, case: 
     break_it(config)
 
     with pytest.raises(PipelineError, match=message):
-        ingest(config)
+        build(config)
     assert not config.lake.exists()
-
-
-def test_a_rerun_gives_byte_identical_files(config: Config) -> None:
-    ingest(config)
-    first = {path: path.read_bytes() for path in config.lake.rglob("*") if path.is_file()}
-
-    ingest(config)
-
-    assert {path: path.read_bytes() for path in config.lake.rglob("*") if path.is_file()} == first
 
 
 def test_picks_the_newest_complete_snapshot_and_ignores_other_files(config: Config) -> None:

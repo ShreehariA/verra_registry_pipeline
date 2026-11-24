@@ -1,0 +1,13 @@
+# Streamlit settings for `make dashboard` and the Docker image. Nothing leaves the machine:
+[browser]
+gatherUsageStats = false   # no usage statistics sent to Streamlit's makers
+
+[server]
+headless = true            # no first-run prompt asking for an email address; `make dashboard` prints the URL
+fileWatcherType = "none"   # the app reads the lake, not its own source: no need to watch files
+
+[logger]
+hideWelcomeMessage = true  # the welcome text looks up this machine's public IP address online
+
+[client]
+toolbarMode = "viewer"     # no "Deploy" button or developer menu for people viewing the dashboard

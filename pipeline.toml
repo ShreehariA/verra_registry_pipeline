@@ -5,6 +5,7 @@
 [paths]
 landing = "data/landing"              # raw daily drops; only ever read
 lake = "lake"                         # Parquet: one folder per layer, table and snapshot date
+sql = "sql"                           # the model: macros, silver/, gold/ and the quality checks
 
 [ingest]
 file_name = "{prefix}_{date}.csv"     # {date} is YYYY-MM-DD

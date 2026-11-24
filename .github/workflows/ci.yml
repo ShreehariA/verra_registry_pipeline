@@ -1,0 +1,27 @@
+# Every push and pull request: lint, types and every test, exactly as `make check` runs them locally;
+# then the cloud demo's Terraform is checked for format and validity, offline.
+name: check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.19"
+      - run: make check
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.5"
+      - run: terraform -chdir=deploy fmt -check
+      - run: terraform -chdir=deploy init -backend=false
+      - run: terraform -chdir=deploy validate

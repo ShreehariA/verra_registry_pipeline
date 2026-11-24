@@ -1,0 +1,11 @@
+# An allow-list: only what the image needs goes in. Data, the lake, notes and secrets never do.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!pipeline.toml
+!.streamlit/
+!src/
+!sql/
+!dashboard/
+**/__pycache__

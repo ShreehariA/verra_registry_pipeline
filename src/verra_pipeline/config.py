@@ -25,6 +25,7 @@ class Source:
 class Config:
     landing: Path
     lake: Path
+    sql: Path
     file_name: str
     max_rejected_share: float
     sources: tuple[Source, ...]
@@ -38,6 +39,7 @@ def load(path: Path) -> Config:
         return Config(
             landing=root / paths["landing"],
             lake=root / paths["lake"],
+            sql=root / paths["sql"],
             file_name=ingest["file_name"],
             max_rejected_share=float(ingest["max_rejected_share"]),
             sources=tuple(

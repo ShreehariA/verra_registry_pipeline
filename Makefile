@@ -2,10 +2,10 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup check build query clean
+.PHONY: help setup check build query dashboard clean
 
 help: ## List the commands
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-10s %s\n", $$1, $$2}'
 
 setup: ## Create .venv with the locked dependencies (needs uv)
 	$(UV) sync
@@ -21,6 +21,10 @@ build: ## Build every layer from the newest complete snapshot in data/landing
 
 query: ## Run SQL, e.g. make query SQL="select count(*) from bronze.retirements"
 	$(UV) run verra query "$(SQL)"
+
+dashboard: ## Serve the dashboard on the newest build at http://localhost:8501
+	@echo "Dashboard: http://localhost:8501 (Ctrl+C stops it)"
+	$(UV) run streamlit run dashboard/app.py
 
 clean: ## Delete everything the pipeline generated (lake/); never touches data/landing
 	rm -rf lake

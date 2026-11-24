@@ -18,7 +18,7 @@ wide = (
     .reset_index()
     .rename(columns={"issuance": "issued", "retirement": "retired", "cancellation": "cancelled"})
 )
-undated = by_year[by_year["year"].isna() & (by_year["event_type"] == "retirement")]
+undated = by_year[by_year["year"].isna()]  # events with no date: in every total, but on no year
 
 if wide.empty:
     st.info("No event in this snapshot has a readable date: see Data quality.", icon=":material/info:")
@@ -35,7 +35,7 @@ if running:
         }
     )
     series = {"used": PALETTE[theme()][0], "issued": GREY}  # the story first, its context in grey
-    alt_text = "Credits issued and used (retired or cancelled) so far, by year. The gap is still available."
+    alt_text = "Credits issued and used (retired or cancelled) so far, by year"
 else:
     lines = wide[["year", "issued", "retired"]]
     series = {"retired": PALETTE[theme()][0], "issued": GREY}
@@ -70,12 +70,15 @@ chart = (
     .add_params(nearest)
 )
 st.altair_chart(chart.properties(height=360), alt=alt_text)
-if running:
-    st.caption("The gap between the two lines is the credits still available.")
+if running:  # undated events never join a line, so then the gap and what's available differ by them
+    apart = ", apart from the undated events below, which have no year" if len(undated) else ""
+    st.caption(f"The gap between the two lines is the credits still available{apart}.")
 if len(undated):
-    events, credits = int(undated["events"].sum()), int(undated["credits"].sum())
+    events = zip(undated["event_type"], undated["events"], strict=True)
+    kinds = ", ".join(f"{n:,} {kind}{'s' * (n != 1)}" for kind, n in events)
+    verb = "has" if undated["events"].sum() == 1 else "have"
     st.caption(
-        f"{events:,} retirements ({credits:,} credits) have no date, so they aren't on this chart. "
+        f"{kinds} ({int(undated['credits'].sum()):,} credits) {verb} no date, so they aren't on this chart. "
         "They count in every total."
     )
 

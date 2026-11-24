@@ -51,7 +51,7 @@ Credits: issued 198,511,826 · retired 56,564,196 · cancelled 6,123,377 · avai
 ```
 
 **Check three things in the report:**
-1. **The date on the first line** is the snapshot you meant to build.
+1. **The date on the first line** is the snapshot you meant to build. A newer date skipped for a missing file is listed under Findings, and a `Note:` at the end means the lake holds a newer snapshot than this one ([section 5](#5-run-it-on-another-snapshot)).
 2. **"Quality gate passed".** If a check fails, the build stops with one sentence, and nothing is written ([section 12](#12-when-something-goes-wrong)).
 3. **The warnings** are facts about Verra's data. Today there are four; a new one deserves a look.
 
@@ -83,30 +83,31 @@ Verra publishes the three files every day. Each one holds the full history, so e
 
 ```bash
 cp ~/Downloads/Verra*_2026-11-24.csv data/landing/    # the three files, with the same names and one date
-make clean build                                      # an empty lake, then the newest complete date
+make clean build SNAPSHOT=2026-11-24                  # an empty lake, then exactly that date
 ```
 
-**Why `make clean` first:** every snapshot built stays in `lake/`, and the dashboard and `make query` always show the **newest** one. Built into a lake that already holds a newer date, an older snapshot would be written but not shown. Starting from an empty lake shows exactly the snapshot you built.
+**Why name the date:** without `SNAPSHOT`, the build takes the newest date that has all three files. If yours is older than ours (2026-11-17), that would be ours.
+
+**Why `make clean` first:** every snapshot built stays in `lake/`, and the dashboard and `make query` always show the **newest** one. Built into a lake that already holds a newer date, an older snapshot would be written but not shown, and the report would end with a `Note:` saying so. Starting from an empty lake shows exactly the snapshot you built.
 
 **Other ways, for one run:**
 
 ```bash
-uv run verra build --snapshot 2026-11-17              # a date other than the newest
 uv run verra build --landing /path/to/files           # files from another folder
 uv run verra build --lake /tmp/verra-lake             # write somewhere else
 ```
 
-**Check:** the first line of the report names the date that was built. If the newest date in `data/landing` is missing a file, that date is skipped and the newest *complete* date is built instead, so compare the date with the one you expected.
+**Check:** the first line of the report names the date that was built. In a daily run without `SNAPSHOT`, a newer date that's missing a file is skipped, and the report lists it under Findings with the file it lacks.
 
 ## 6. Test it
 
 ```bash
-make check                                     # lint, format check, types, then all 67 tests: about 12 seconds
+make check                                     # lint, format check, types, then all 70 tests: about 12 seconds
 uv run pytest tests/test_dashboard.py -v       # one file, with each test's name
 uv run pytest -k "gate"                        # only the tests whose names contain "gate"
 ```
 
-**You should see** `67 passed`. GitHub Actions runs `make check` on every push. Two tests check the shipped 2026-11-17 snapshot. They're skipped when its files aren't in `data/landing`; the one for the analysis also when a newer snapshot is there. What each test file protects: [checks and tests](quality.md#the-tests).
+**You should see** `70 passed`. GitHub Actions runs `make check` on every push. Two tests check the shipped 2026-11-17 snapshot. They're skipped when its files aren't in `data/landing`; the one for the analysis also when a newer snapshot is there. What each test file protects: [checks and tests](quality.md#the-tests).
 
 **Does a test really protect a line?** Break the line on purpose, run the tests, and put it back. For example, delete the line in `src/verra_pipeline/lake.py` that removes a day's manifest before rebuilding it, and `test_a_rebuild_hides_its_day_until_every_file_is_written` fails.
 
@@ -132,6 +133,7 @@ The same image builds the lake and serves the dashboard. It needs neither uv nor
 
 ```bash
 docker build -t verra .
+mkdir -p lake      # yours: on Linux, a folder Docker made for the mount would belong to root
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/data/landing:/data/landing:ro" -v "$PWD/lake:/data/lake" verra \
     verra build --landing /data/landing --lake /data/lake
 docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra      # then open http://localhost:8080
@@ -156,7 +158,7 @@ deploy/gcp.sh run              # upload data/landing/*.csv, build the lake in th
 **Check:** open the URL. Until `run` has finished, the dashboard says nothing has been built yet. Then the overview must show the same 198.5M as locally.
 
 - **After a code change:** run `up` again. Only the image, the job and the dashboard change.
-- **A new snapshot:** `deploy/gcp.sh run <folder>` uploads that folder's CSV files and builds again.
+- **A new snapshot:** `deploy/gcp.sh run <folder>` uploads that folder's CSV files and builds again. The bucket keeps every file uploaded, so there too the newest complete date is the one built and shown.
 - **Take it down:** `deploy/gcp.sh down`. It shows what it will delete and waits for "yes". Keep `deploy/terraform.tfstate` until then: it's Terraform's record of what it made.
 
 If a step fails, [the cloud demo's table of fixes](deploy.md#if-something-fails) lists the likely causes.
@@ -193,7 +195,7 @@ Every error is one sentence, starting `error:`.
 | `error: VerraIssuances_….csv: required columns are missing: units (it has …)` | Verra renamed or dropped a column | Find the new name in the list after "it has", and add an alias ([section 10](#10-change-something)) |
 | `error: VerraRetirements_….csv: … lines (…%) could not be read; at most 1% is allowed` | The file is broken, for example by an unclosed quote | Get a fresh copy of the file. Raise `max_rejected_share` in `pipeline.toml` only if you know why the lines are broken. |
 | `error: the quality gate failed, so nothing was written: <check>: <rows>` | A number would be wrong, so the snapshot wasn't published | The lake still holds the last good build. Find the rows with `uv run python -i analysis/common.py` ([section 7](#7-re-run-the-data-analysis)), fix the input or the rule, and build again |
-| The dashboard says "nothing has been built in lake yet" | No build has finished | `make build` |
-| The dashboard shows a different date from the one you built | The lake holds a newer snapshot, and readers show the newest | `make clean build` ([section 5](#5-run-it-on-another-snapshot)) |
+| The dashboard says "nothing has been built in …/lake yet" | No build has finished | `make build` |
+| The dashboard shows a different date from the one you built, and the report ended with a `Note:` | The lake holds a newer snapshot, and readers show the newest | `make clean build SNAPSHOT=<your date>` ([section 5](#5-run-it-on-another-snapshot)) |
 | The dashboard isn't at http://localhost:8501, and the log says `Uvicorn server started on :::8502` | Another dashboard is still running on 8501, so this one took the next port | Open the port in that line, or stop the other dashboard first |
 | `make check` stops at `ruff format --check` | A file isn't formatted | `uv run ruff format .`, then `make check` again |

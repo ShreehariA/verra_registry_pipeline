@@ -171,7 +171,11 @@ def test_picks_the_newest_complete_snapshot_and_ignores_other_files(config: Conf
     for name in ("VerraIssuances_2030-01-16.csv", "VerraIssuances_2030-13-45.csv", "README.txt"):
         (config.landing / name).write_bytes(b"not a drop")
 
-    assert find_snapshot(config)[0] == DAY
+    day, _, skipped = find_snapshot(config)
+    assert day == DAY
+    assert skipped == [
+        "2030-01-16 skipped: it lacks VerraRetirements_2030-01-16.csv, VerraCancelled_2030-01-16.csv"
+    ], "a newer drop with a file missing is named, so a daily run says it built an older day"
     with pytest.raises(
         PipelineError, match=r"2030-01-16 is missing VerraRetirements_2030-01-16\.csv, VerraCancel"
     ):

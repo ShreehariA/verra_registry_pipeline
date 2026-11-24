@@ -5,13 +5,17 @@ $VERRA_LAKE when that is set (the cloud demo mounts the bucket there). Each page
 what the pages share is in common.py.
 """
 
+from pathlib import Path
+
 import streamlit as st
 from common import lake_path
 
 from verra_pipeline import PipelineError
 from verra_pipeline.lake import newest_manifest
 
-st.set_page_config(page_title="Verra registry", page_icon=":material/forest:", layout="wide")
+# A local tab icon: a Material icon there, or each page's own, is fetched from Google on every page load
+ICON = Path(__file__).parent / "static" / "favicon.png"
+st.set_page_config(page_title="Verra registry", page_icon=str(ICON), layout="wide")
 try:
     newest_manifest(lake_path())
 except PipelineError as error:

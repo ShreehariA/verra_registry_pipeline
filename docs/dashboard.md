@@ -50,8 +50,8 @@ Each chart was picked with the rule of the dataviz skill, which comes with Claud
 | How each year's whole splits | Stacked columns, with a switch to shares. In credits, recent vintages dwarf old ones and hide that old vintages are used up | Vintages |
 | One share that limits the answer | A meter: a thin bar beside its sentence | Retirers (no owner named), Vintages (spans years) |
 | A ranking | Ranked bars in one colour, with the value at the tip | Retirers, and each project's retirers |
-| One series over time, against its context | Two lines on one axis: the story in colour, issued in grey. Or running totals, where the gap between the lines is what's still available | Over time |
-| Exact values, and looking one up | A table under every chart, with a bar per row for the share used | Every page |
+| One series over time, against its context | Two lines on one axis: the story in colour, issued in grey. Or running totals, where the gap between the lines is what's still available, apart from undated events, which have no year | Over time |
+| Exact values, and looking one up | A table under the chart; Projects and Vintages add a bar per row for the share used | Projects, Vintages, Over time, and an owner's projects on Retirers |
 
 Rules that hold on every page:
 - **The same three colours mean the same three fates:** retired is blue, cancelled orange, available green. They're the first three colours of the dataviz skill's palette, checked with its validator for colour blindness and contrast, in the light and the [dark](images/retirers-dark.png) theme. One light colour is below 3:1 contrast, so the tables carry the values.
@@ -87,6 +87,7 @@ The Projects, Vintages and Retirers pages each link to their query here, so any 
 - **It can't open any file,** to read or to write, reach the network, or load an extension. A query that tries gets a "Permission Error".
 - **It can't change those settings back:** they're locked before the query runs.
 - **It gets one thread, 256 MB and 10 seconds,** and at most 1,000 rows are shown. A query too big for its memory fails at once; it never spills to disk.
+- **Queries take turns,** one at a time. Four heavy ones at once reached 1,048 MB, past the cloud demo's 1 GiB; taking turns, they stay near 300 MB.
 - **Whatever it changes dies with it.** `DROP TABLE` only drops that query's own copy, so the next query sees every table again.
 
 Two DuckDB surprises shaped this, both found by testing on a copy of the lake:
@@ -99,7 +100,7 @@ Each guardrail has a test that fails when the guardrail is removed (`tests/test_
 
 - **Owner names are shown as plain text.** They're free text, typed into the registry by whoever retires credits. Shown as Markdown, a name like `[Claim credits](https://…)` would become a link.
 - **Every page survives an unusual snapshot.** If a day's dates can't be read, or no retirement names an owner, the gate only warns, so each page says what's missing instead of crashing. The tests run every page on such a snapshot.
-- **No outside calls.** The font is served by the dashboard itself, and `.streamlit/config.toml` turns off usage statistics, the first-run email prompt, and the welcome message's lookup of the machine's public IP address.
+- **No outside calls.** The font and the tab icon are served by the dashboard itself, and `.streamlit/config.toml` turns off usage statistics, the first-run email prompt, and the welcome message's lookup of the machine's public IP address.
 
 ## Left out on purpose
 

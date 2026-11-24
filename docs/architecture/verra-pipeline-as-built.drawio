@@ -70,7 +70,7 @@
         <mxCell id="gold" parent="1" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Gold&lt;/b&gt;&lt;br&gt;star schema&lt;br&gt;+ 3 marts" vertex="1">
           <mxGeometry height="80" width="130" x="1230" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="use" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Dashboard&lt;/b&gt;&lt;br&gt;the 3 questions&lt;br&gt;+ data quality&lt;br&gt;&lt;i&gt;dashboard/app.py&lt;/i&gt;" vertex="1">
+        <mxCell id="use" parent="1" style="rounded=0;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="&lt;b&gt;Dashboard&lt;/b&gt;&lt;br&gt;the 3 questions,&lt;br&gt;data quality, SQL&lt;br&gt;&lt;i&gt;dashboard/&lt;/i&gt;" vertex="1">
           <mxGeometry height="80" width="130" x="1400" y="140" as="geometry" />
         </mxCell>
         <mxCell id="analysts" parent="1" style="shape=umlActor;outlineConnect=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=6;html=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1;fontFamily=Helvetica;fontColor=#000000;fontSize=12;" value="Analysts" vertex="1">

@@ -16,8 +16,8 @@ check: ## Lint, type-check and test: run before every commit
 	$(UV) run mypy
 	$(UV) run pytest
 
-build: ## Build every layer from the newest complete snapshot in data/landing
-	$(UV) run verra build
+build: ## Build every layer from the newest complete snapshot in data/landing, or SNAPSHOT=YYYY-MM-DD
+	$(UV) run verra build $(if $(SNAPSHOT),--snapshot $(SNAPSHOT))
 
 query: ## Run SQL, e.g. make query SQL="select count(*) from bronze.retirements"
 	$(UV) run verra query "$(SQL)"

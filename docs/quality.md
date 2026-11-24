@@ -5,7 +5,7 @@ The brief says that the numbers being right matters most. Five things show that 
 1. **Nothing is lost on the way in.** For every file, the records read equal the records loaded plus the ones quarantined, and every bronze row carries its file, line and checksum.
 2. **Every layer adds up.** Silver has one row per bronze row, the fact table has the same rows and credits as silver, and every mart adds up to the fact table. If any of these fails, nothing is written.
 3. **Every retired credit traces back to an issuance.** Each retirement and cancellation lies inside one issued batch, and no credit is used twice.
-4. **An independent check.** The reference numbers were first worked out from the raw files, before the pipeline existed ([the data analysis](data-analysis.md)). A test holds the pipeline to them.
+4. **An independent check.** The reference numbers were first worked out by the data analysis, with its own SQL, before the cleaning and the model were written ([the data analysis](data-analysis.md)). A test holds the pipeline to them. Only the file reader is shared, and `analysis/files.py` re-reads the raw bytes to check it.
 5. **The same input gives the same bytes,** on macOS and in a Linux container.
 
 ## The quality gate
@@ -66,7 +66,7 @@ The names in brackets are cases of `test_refuses_input_it_cannot_trust_and_write
 
 ## The tests
 
-`make check` runs lint, type checks and the 67 tests. GitHub Actions runs it on every push, and also checks the cloud demo's Terraform.
+`make check` runs lint, type checks and the 70 tests. GitHub Actions runs it on every push, and also checks the cloud demo's Terraform.
 
 ```bash
 make check                                   # everything, as GitHub Actions runs it
@@ -79,8 +79,8 @@ uv run pytest -k rebuild                     # only the tests whose names contai
 | `tests/test_ingest.py` | 14 | The real files' quirks, on tiny fixture files dated 2030-01-15; headers by name and alias; six kinds of broken input refused with nothing written |
 | `tests/test_cli.py` | 5 | The build's report, querying the newest finished snapshot, and one-line errors |
 | `tests/test_transform.py` | 19 | Each macro on the formats the files use; owner keys, including a Chinese name and placeholders; the repair of mis-encoded text; totals; the gate failing and writing nothing; the batch checks firing; byte-identical rebuilds; a rebuilt day hidden until it's whole |
-| `tests/test_real_snapshot.py` | 2 | Every number in the README's answers, on the shipped snapshot, plus two cleaning rules only real data exercises: the repair of mis-encoded owner names, and each project's most common country. And the scripts in `analysis/` still print the numbers the docs quote |
-| `tests/test_dashboard.py` | 23 | The overview's figures equal the model's totals; every page renders, even with no dates or owners; an empty lake says what to do; a project is found by name, country or ID; the SQL page runs queries, cuts long results, shows errors, keeps its query when another tab opens, and finds tables by their columns; owner names can't become Markdown; and SQL typed by anyone can't read or write a file, undo its settings, run past its time, or spill to disk |
+| `tests/test_real_snapshot.py` | 2 | Every number in the README's answers, on the shipped snapshot, plus two cleaning rules only real data exercises: the repair of mis-encoded owner names, and each project's most common country. And the scripts in `analysis/` still print the key numbers the docs quote |
+| `tests/test_dashboard.py` | 26 | The overview's figures equal the model's totals; every page renders, even with no dates or owners; a picked project and a picked table open, and a project's caption leaves out details the snapshot lacks; Over time counts every undated event; an empty lake says what to do; a project is found by name, country or ID; the SQL page runs queries, cuts long results, shows errors, keeps its query when another tab opens, and finds tables by their columns; owner names can't become Markdown; and SQL typed by anyone can't read or write a file, undo its settings, run past its time, or spill to disk |
 | `tests/test_deploy.py` | 4 | The deploy script's dry runs change nothing (`up` and `down` only ask Terraform for its plan), every command names the project, and it refuses to start without one |
 
 **Do the tests catch real mistakes?** The risky lines were mutation-checked: broken on purpose, one at a time, to confirm that a test fails. For example, deleting the line that hides a day during its rebuild makes `test_a_rebuild_hides_its_day_until_every_file_is_written` fail, and reading quantities with a plain cast again makes a test fail.

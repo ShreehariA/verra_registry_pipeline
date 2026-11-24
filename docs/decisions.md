@@ -65,7 +65,7 @@ None of these changes today's numbers. Each is a deliberate shortcut, or a small
 - **File names:** prefixes must be letters and digits, and the extension exactly `.csv`.
 - **New columns aren't flagged.** They're kept in bronze and listed in the manifest, but there's no finding for them.
 - **The views show the newest finished day.** Earlier days stay on disk and can be read by path.
-- **Each query on the SQL page copies the whole snapshot** into memory: 50 ms and 44 MB today. Past a few hundred MB, open a read-only DuckDB file of the snapshot instead.
+- **Each query on the SQL page copies the whole snapshot** into memory: 50 ms and 44 MB today. Queries take turns, so there's one copy at a time. Past a few hundred MB, open a read-only DuckDB file of the snapshot instead.
 - **A multi-year vintage counts in its first year** on charts by year.
 - **Names written in Retirement Reason Details aren't used,** multi-value fields aren't split, and countries aren't ISO codes ([data analysis](data-analysis.md#left-alone-on-purpose)).
 - **The cloud demo hasn't been deployed yet,** so writes through the bucket mount, the public URL and Cloud Build's permissions are unproven ([the cloud demo](deploy.md#not-yet-proved)).

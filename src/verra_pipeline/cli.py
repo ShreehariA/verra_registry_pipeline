@@ -16,7 +16,7 @@ import duckdb
 from verra_pipeline import PipelineError
 from verra_pipeline.config import Config, load
 from verra_pipeline.ingest import ingest
-from verra_pipeline.lake import connect, publish
+from verra_pipeline.lake import connect, newest_manifest, publish
 from verra_pipeline.transform import describe, transform
 
 LOCATIONS = ("landing", "lake")
@@ -82,7 +82,8 @@ def _report(manifest: dict[str, Any], config: Config) -> str:
             f"{f['rows_read']:>8,} read{f['rows_loaded']:>9,} loaded{f['rows_quarantined']:>4,} quarantined"
         )
         lines.append(f"  {f['table']:<14}{counts}")
-    findings = [f"  {f['file']}: {note}" for f in manifest["files"] for note in f["findings"]]
+    findings = [f"  {note}" for note in manifest["skipped"]]
+    findings += [f"  {f['file']}: {note}" for f in manifest["files"] for note in f["findings"]]
     if findings:
         lines += ["", "Findings", *findings]
     errors = [c for c in manifest["checks"] if c["severity"] == "error"]
@@ -90,12 +91,15 @@ def _report(manifest: dict[str, Any], config: Config) -> str:
     lines += ["", f"Quality gate passed: all {len(errors)} error checks are clean"]
     lines += [f"  warning: {describe(c)}" for c in warnings]
     totals = " · ".join(f"{name} {value:,}" for name, value in manifest["credits"].items())
-    lines += [
-        "",
-        f"Credits: {totals}",
-        f"Written to {os.path.relpath(config.lake)}",
-        'Look inside: uv run verra query "select * from gold.mart_project_balance limit 5"',
-    ]
+    lines += ["", f"Credits: {totals}", f"Written to {os.path.relpath(config.lake)}"]
+    # readers show the newest finished snapshot, which may not be the one just built
+    newest = newest_manifest(config.lake).parent.name.removeprefix("snapshot_date=")
+    if newest != manifest["snapshot_date"]:
+        lines.append(
+            f"Note: the lake also holds {newest}, which is newer, so the dashboard and `verra query` "
+            "show that one. Empty the lake first (make clean) to see only this snapshot."
+        )
+    lines.append('Look inside: uv run verra query "select * from gold.mart_project_balance limit 5"')
     return "\n".join(lines)
 
 

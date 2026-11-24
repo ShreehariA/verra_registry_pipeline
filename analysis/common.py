@@ -13,7 +13,7 @@ from verra_pipeline.config import load
 from verra_pipeline.ingest import find_snapshot, ingest
 
 config = load(Path(__file__).resolve().parent.parent / "pipeline.toml")  # works from any folder
-snapshot, files = find_snapshot(config)  # the newest date with all three files in data/landing
+snapshot, files, _ = find_snapshot(config)  # the newest date with all three files in data/landing
 con = duckdb.connect()
 ingest(con, config, snapshot)
 con.execute("SET search_path = 'bronze'")  # so a query says `retirements`, as the file is named
@@ -47,4 +47,4 @@ def show(question: str, sql: str, rows: int = 40) -> None:
     con.sql(sql).show(max_rows=rows, max_width=200)
 
 
-print(f"# Snapshot {snapshot}, read from {config.landing.name}/ as delivered")
+print(f"# Snapshot {snapshot}, read from {config.landing.parent.name}/{config.landing.name}/ as delivered")

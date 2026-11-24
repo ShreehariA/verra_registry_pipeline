@@ -84,7 +84,10 @@ if not event.selection.rows:
 else:
     project = shown.iloc[event.selection.rows[0]]
     st.subheader(plain(project.project_name))
-    st.caption(f"Project {project.project_id}, {plain(project.country)}. {plain(project.sectoral_scope)}.")
+    # country and scope are optional columns: a snapshot without them leaves them out, not "None"
+    country = f", {plain(project.country)}" if isinstance(project.country, str) else ""
+    scope = f" {plain(project.sectoral_scope)}." if isinstance(project.sectoral_scope, str) else ""
+    st.caption(f"Project {project.project_id}{country}.{scope}")
     st.altair_chart(ledger_bar(project), alt="What happened to this project's issued credits")
     by_vintage, by_owner = st.columns(2, gap="large")
     with by_vintage:

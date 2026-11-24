@@ -43,7 +43,9 @@ def test_query_reads_the_newest_finished_snapshot(settings: Path, capsys: pytest
         assert main(["--config", str(settings), "build", "--snapshot", day]) == 0
     # as if the 2030-01-16 build had stopped before its last step
     (settings.parent / "lake" / "_manifests" / "snapshot_date=2030-01-16" / "build.json").unlink()
-    capsys.readouterr()
+    reports = capsys.readouterr().out
+    assert reports.count("Note: the lake also holds") == 1, "only the 2030-01-14 build: 2030-01-15 was newer"
+    assert "the lake also holds 2030-01-15, which is newer" in reports
 
     sql = "select distinct _snapshot_date::varchar as day from bronze.issuances"
     assert main(["--config", str(settings), "query", sql]) == 0

@@ -6,7 +6,7 @@
 
 ## The steps
 
-1. **Find the snapshot.** Files are named `<prefix>_<YYYY-MM-DD>.csv`. The newest date that has all three files is built, and the report's first line names it. An incomplete date is skipped without a word, so check that date. `--snapshot` picks a date, and then a missing file is an error.
+1. **Find the snapshot.** Files are named `<prefix>_<YYYY-MM-DD>.csv`. The newest date that has all three files is built, and the report's first line names it. A newer date with a file missing is skipped, and the report lists it with the file it lacks. `--snapshot` picks a date, and then a missing file is an error.
 2. **Read and check every file** (`ingest.py`). Nothing is written yet.
 3. **Load bronze** into one in-memory DuckDB database.
 4. **Build silver and gold** by running the SQL files in `sql/` (`transform.py`).
@@ -45,7 +45,7 @@ The SQL files run in a fixed order: `macros.sql`, then `silver/`, then `gold/`. 
 1. Every check runs before the first write.
 2. Each file is written under a temporary name, then renamed over the target, so a reader never sees half a file.
 3. A rebuild of a day first removes that day's manifest, so the day stays hidden until it's whole again.
-4. The manifest is written last. It records each input file, its checksum, the columns found, the rows read, loaded and quarantined, the findings, the gate's results and the credit totals.
+4. The manifest is written last. It records each input file, its checksum, the columns found, the rows read, loaded and quarantined, the findings, any newer date skipped, the gate's results and the credit totals.
 5. Readers (`verra query` and the dashboard) only see dates that have a manifest.
 
 ## The lake
@@ -58,7 +58,7 @@ lake/
   _manifests/snapshot_date=2026-11-17/build.json
 ```
 
-Every snapshot stays in its own folder. `verra query` and the dashboard create views in memory over the newest finished snapshot. Nothing locks the files, so a build can run while the dashboard is open.
+Every snapshot stays in its own folder. `verra query` and the dashboard create views in memory over the newest finished snapshot; when a build writes an older date than one already there, its report ends with a note saying so. Nothing locks the files, so a build can run while the dashboard is open.
 
 ## Same input, same bytes
 
@@ -77,7 +77,7 @@ A test rebuilds and compares every file. Built in the Docker image on Linux, the
 
 ```bash
 make build                                      # the newest complete snapshot in data/landing
-make clean build                                # from an empty lake, so readers show exactly this snapshot
+make clean build SNAPSHOT=2026-11-17            # an empty lake, then exactly that date
 uv run verra build --snapshot 2026-11-17        # a given date
 uv run verra build --landing <folder> --lake <folder>
 uv run verra --config other.toml build          # other settings

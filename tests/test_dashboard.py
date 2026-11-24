@@ -1,6 +1,7 @@
 """The dashboard, run with Streamlit's AppTest (no browser) on a lake built from the fixture snapshot."""
 
 import importlib.util
+from collections.abc import Collection
 from pathlib import Path
 from types import ModuleType
 
@@ -187,23 +188,89 @@ def test_an_empty_lake_says_what_to_do(tmp_path: Path, monkeypatch: pytest.Monke
     ]
 
 
-def test_every_page_stays_up_without_dates_or_owners(config: Config, monkeypatch: pytest.MonkeyPatch) -> None:
-    blank = {"Issuance Date", "Retirement Date", "Cancellation Date", "Beneficial Owner"}
+def snapshot_with(
+    config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+    blank: Collection[str] = (),
+    drop: Collection[str] = (),
+) -> AppTest:
+    """The dashboard on the fixture snapshot rewritten with some columns blanked, or dropped altogether."""
     exports = [
         ("VerraIssuances", ISSUANCE_HEADER, ISSUANCE_ROWS),
         ("VerraRetirements", RETIREMENT_HEADER, RETIREMENT_ROWS),
         ("VerraCancelled", CANCELLATION_HEADER, CANCELLATION_ROWS),
     ]
     for prefix, header, rows in exports:
-        emptied = [
-            ["" if column in blank else value for column, value in zip(header, row, strict=True)]
-            for row in rows
-        ]
-        (config.landing / f"{prefix}_{DAY}.csv").write_bytes(csv_bytes(header, emptied))
+        kept = [i for i, column in enumerate(header) if column not in drop]
+        changed = [["" if header[i] in blank else row[i] for i in kept] for row in rows]
+        (config.landing / f"{prefix}_{DAY}.csv").write_bytes(csv_bytes([header[i] for i in kept], changed))
     build(config)
     monkeypatch.setenv("VERRA_LAKE", str(config.lake))
-    app = AppTest.from_file(APP, default_timeout=60).run()
+    return AppTest.from_file(APP, default_timeout=60).run()
+
+
+def pick(app: AppTest, table_key: str, row: int) -> None:
+    """Pick a row of a table, as a click in the browser would (AppTest has no click for table rows)."""
+    app.session_state[table_key] = {"selection": {"rows": [row], "columns": [], "cells": []}}
+    app.run()
+
+
+def test_every_page_stays_up_without_dates_or_owners(config: Config, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = snapshot_with(
+        config,
+        monkeypatch,
+        blank={"Issuance Date", "Retirement Date", "Cancellation Date", "Beneficial Owner"},
+    )
 
     for page in PAGES:
         app.switch_page(f"app_pages/{page}.py").run()
         assert not app.exception, page
+
+
+def test_a_picked_project_and_a_picked_table_open(app: AppTest) -> None:
+    open_page(app, "projects")
+    pick(app, "projects_table ", 0)  # the table's key holds its search, here none; row 0 is the largest
+
+    assert not app.exception
+    assert app.subheader[-1].value == "Landfill Gas, Combustion Project"
+    assert any(caption.value.startswith("Project 5, United States of America. ") for caption in app.caption)
+
+    app.switch_page("app_pages/sql.py").run()
+    pick(app, "sql_navigator ", 2)  # gold first, by name: dim_beneficial_owner, dim_project, fct_credit_event
+    for tab in ("Table", "Diagram"):
+        app.session_state["sql_tab"] = tab
+        app.run()
+        assert not app.exception, tab
+        if tab == "Table":
+            assert app.subheader[0].value == "gold.fct_credit_event"
+
+
+def test_a_picked_project_leaves_out_details_the_snapshot_lacks(
+    config: Config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = snapshot_with(config, monkeypatch, drop={"Country", "Sectoral Scope"})  # both optional
+    open_page(app, "projects")
+
+    pick(app, "projects_table ", 0)
+
+    assert "Project 5." in [caption.value for caption in app.caption], "not 'Project 5, None. None.'"
+
+
+def test_over_time_counts_every_undated_event(config: Config, monkeypatch: pytest.MonkeyPatch) -> None:
+    app = snapshot_with(
+        config, monkeypatch, blank={"Issuance Date"}
+    )  # the fixture has one undated retirement
+    open_page(app, "over_time")
+
+    captions = [caption.value for caption in app.caption]
+    assert (
+        "2 issuances, 1 retirement (24,367 credits) have no date, so they aren't on this chart. "
+        "They count in every total." in captions
+    )
+
+    app.session_state["over_time_show"] = "Running total"
+    app.run()
+    assert (
+        "The gap between the two lines is the credits still available, apart from the undated events "
+        "below, which have no year." in [caption.value for caption in app.caption]
+    )

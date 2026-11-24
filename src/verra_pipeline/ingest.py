@@ -51,17 +51,22 @@ class File:
 
 def ingest(con: duckdb.DuckDBPyConnection, config: Config, wanted: date | None = None) -> dict[str, Any]:
     """Load the snapshot into bronze tables in `con`; return its manifest: what was read, kept, set aside."""
-    day, paths = find_snapshot(config, wanted)
+    day, paths, skipped = find_snapshot(config, wanted)
     files = [read(paths[source.table], source, config.max_rejected_share) for source in config.sources]
     con.execute("CREATE SCHEMA bronze")
     for file in files:
         con.from_arrow(_bronze(file, day)).create(f"bronze.{file.source.table}")
     con.from_arrow(_quarantine(files, day)).create("bronze.rejected_records")
-    return {"snapshot_date": day.isoformat(), "files": [_manifest_entry(file) for file in files]}
+    return {
+        "snapshot_date": day.isoformat(),
+        "skipped": skipped,
+        "files": [_manifest_entry(file) for file in files],
+    }
 
 
-def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dict[str, Path]]:
-    """The requested snapshot, or the newest date with a file for every source. Other files are ignored."""
+def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dict[str, Path], list[str]]:
+    """The requested snapshot, or the newest date with a file for every source, and a note for each newer
+    date skipped for a missing file: a daily run must say it built yesterday's. Other files are ignored."""
     if not config.landing.is_dir():
         raise PipelineError(f"the landing folder {config.landing} does not exist")
     pattern = (
@@ -79,6 +84,15 @@ def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dic
             except ValueError:  # an impossible date such as 2026-13-45 is not a drop
                 continue
             drops.setdefault(day, {})[tables[match["prefix"]]] = path
+
+    def missing(day: date) -> list[str]:
+        return [
+            config.file_name.format(prefix=prefix, date=day)
+            for prefix, table in tables.items()
+            if table not in drops[day]
+        ]
+
+    skipped: list[str] = []
     if wanted is None:
         complete = [day for day, files in drops.items() if len(files) == len(tables)]
         if not complete:
@@ -92,16 +106,14 @@ def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dic
                 f"no date has all {len(tables)} files in {config.landing} ({found or 'expected ' + expected})"
             )
         wanted = max(complete)
+        skipped = [
+            f"{day} skipped: it lacks {', '.join(missing(day))}" for day in sorted(drops) if day > wanted
+        ]
     if wanted not in drops:
         raise PipelineError(f"no files dated {wanted} in {config.landing}")
-    missing = [
-        config.file_name.format(prefix=prefix, date=wanted)
-        for prefix, table in tables.items()
-        if table not in drops[wanted]
-    ]
-    if missing:
-        raise PipelineError(f"snapshot {wanted} is missing {', '.join(missing)}")
-    return wanted, drops[wanted]
+    if missing(wanted):
+        raise PipelineError(f"snapshot {wanted} is missing {', '.join(missing(wanted))}")
+    return wanted, drops[wanted], skipped
 
 
 def read(path: Path, source: Source, max_rejected_share: float) -> File:

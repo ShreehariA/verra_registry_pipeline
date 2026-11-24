@@ -5,8 +5,6 @@ Turns Verra's three daily registry exports into a clean, tested data model, with
 2. How does credit activity break down by vintage?
 3. Who are the largest retirers, and what do they retire?
 
-**Live demo:** not deployed yet. `deploy/gcp.sh up` creates it ([Cloud demo](#cloud-demo)), and its URL goes here.
-
 ![The dashboard's overview: every credit issued, split into retired, cancelled and still available](docs/images/overview.png)
 
 **Contents**
@@ -35,7 +33,7 @@ You need [uv](https://docs.astral.sh/uv/). It installs Python 3.13 if it's missi
 make setup       # create .venv with the locked dependencies
 make build       # the one command: raw files to bronze, silver and gold, behind a quality gate (about 1 second)
 make dashboard   # http://localhost:8501
-make check       # lint, type-check and run the 67 tests
+make check       # lint, type-check and run the 70 tests
 make analysis    # re-run the data analysis behind the findings below
 ```
 
@@ -47,6 +45,7 @@ With Docker instead (it needs neither uv nor Python):
 
 ```bash
 docker build -t verra .
+mkdir -p lake        # yours: on Linux, a folder Docker made for the mount would belong to root
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/data/landing:/data/landing:ro" -v "$PWD/lake:/data/lake" verra \
     verra build --landing /data/landing --lake /data/lake
 docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra      # http://localhost:8080
@@ -91,33 +90,36 @@ To query any table directly, raw rows included: `make query SQL="select * from g
 | Retired credits with no named owner | 39,846,198 (70.4%) |
 | Issued credits with a multi-year vintage | 33,573,921 (16.9%) |
 
-`tests/test_real_snapshot.py` checks these numbers on every run. Each one was first worked out independently, line by line, in the data analysis.
+`tests/test_real_snapshot.py` checks these numbers on every run. Each one was first worked out in the data analysis, from the files as delivered, before the cleaning and the model were written.
 
 **How we know they're right:**
 1. **Nothing is lost on the way in.** For every file, the records read equal the records loaded plus the ones quarantined, and every row keeps its file, line and checksum.
 2. **Every layer adds up.** Silver has one row per bronze row, the fact table equals silver, and every mart adds up to the fact table. If not, nothing is written.
 3. **Every retired credit traces back to an issuance:** each one lies inside an issued batch, and none is used twice.
-4. **An independent check:** the numbers above were worked out from the raw files before the pipeline existed, and a test holds the pipeline to them.
+4. **An independent check:** the data analysis (`analysis/`) worked out the numbers above with its own SQL, before the cleaning and the model were written, and a test holds the pipeline to them. Only the file reader is shared, and `analysis/files.py` re-reads the raw bytes to check it.
 5. **The same input gives the same bytes,** on macOS and in a Linux container.
 
 More: [checks and tests](docs/quality.md).
 
 ## Running it on another snapshot
 
-Put the three files in `data/landing/` with the same names (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`) and run `make clean build`.
-- **Which date:** the newest date that has all three files.
-- **Other choices for one run:**
-  - `uv run verra build --snapshot 2026-11-17` picks a date;
-  - `--landing <folder>` reads another folder;
-  - `--lake <folder>` writes elsewhere.
-- **Every snapshot is kept** in its own folder (`snapshot_date=…`). SQL and the dashboard show the newest one that finished building, so `make clean` first empties the lake: then they show exactly the snapshot you built, even if it's older than one built before.
+Put the three files in `data/landing/` with the same names (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`), then build that date from an empty lake:
+
+```bash
+make clean build SNAPSHOT=2026-11-24
+```
+
+- **Why name the date:** without it, the build takes the newest date that has all three files, which is ours (2026-11-17) if yours is older.
+- **Why `make clean`:** every snapshot built stays in `lake/`, in its own folder, and SQL and the dashboard show the newest one. An empty lake shows exactly the one you built.
+- **The report says so** when the lake holds a newer snapshot than the one built, and when a newer date was skipped for a missing file.
+- **For one run:** `uv run verra build --landing <folder>` reads another folder, and `--lake <folder>` writes elsewhere.
 
 What happens to input it can't trust:
 
 | The input | What happens |
 |---|---|
-| A date with a file missing | That date is skipped, and the newest complete date is built; the report's first line names the date built. It's an error only when no date is complete, or when `--snapshot` asks for that date. |
-| A required column missing, or a file mostly unreadable (over 1% of its lines) | The run stops with one clear sentence and writes nothing. |
+| A date with a file missing | That date is skipped, and the newest complete date is built. The report names the date built, and the skipped date with the file it lacks. It's an error only when no date is complete, or when `--snapshot` asks for that date. |
+| A required column missing, or more than 1% of a file's lines unreadable | The run stops with one clear sentence and writes nothing. |
 | A record that can't be read (a cut-off last line, a broken quote) | It goes to `bronze.rejected_records` with its reason and exact text, and the run carries on. |
 | A renamed header | One alias line in `pipeline.toml` maps it to the old name. |
 | A value that can't be read (a date, a number, a serial) | It becomes NULL in silver. The quality gate stops the build if a number would be wrong; otherwise it warns. |
@@ -265,7 +267,7 @@ The marts join the dimensions, so the last check also proves no event points at 
 
 **13 warnings** report facts about Verra's data, and the build goes on: unreadable records, dates and serials, credits outside every batch or used twice, negative balances, and retirements with no named owner. Four fire on this snapshot: 1 quarantined record, 19 undated retirements, 20 retirements dated before their batch was issued, and 7,390 retirements with no named owner.
 
-**67 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, the data analysis that first found them, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
+**70 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, the data analysis that first found them, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
 
 More: [checks and tests](docs/quality.md): every check and today's result, each integrity rule with the test that proves it, and the tests file by file.
 
@@ -284,7 +286,7 @@ More: [checks and tests](docs/quality.md): every check and today's result, each 
 - **Over time** and **Data quality:** activity per year, and how far the numbers can be trusted.
 - **SQL:** any query on any table, raw rows included, read-only. After DBeaver: a navigator that searches tables and columns, examples, a history, each table's profile, and the star schema.
 
-The three fates of a credit wear the same three colours everywhere, checked for colour blindness in light and dark, and every chart has a table under it.
+The three fates of a credit wear the same three colours everywhere, checked for colour blindness in light and dark, and the answers' tables sit under their charts.
 
 More: [the dashboard](docs/dashboard.md): the chart for each question and why, the look, and the SQL page's guardrails.
 
@@ -339,8 +341,8 @@ Short pages in `docs/`, each one the detail behind a section above:
 pipeline.toml          settings: paths, file names, reject budget, columns per export
 src/verra_pipeline/    the pipeline: ingest.py, transform.py, lake.py, config.py, cli.py
 sql/                   the model: macros.sql, silver/, gold/, checks.sql
-dashboard/             the Streamlit dashboard: app.py (the pages), app_pages/, common.py (data, colours, charts), static/ (its font)
-tests/                 67 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
+dashboard/             the Streamlit dashboard: app.py (the navigation), app_pages/, common.py (data, colours, charts), static/ (its font and tab icon)
+tests/                 70 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
 analysis/              the data analysis: one script per question asked of the files (make analysis)
 deploy/main.tf         the cloud demo's resources, in Terraform
 deploy/gcp.sh          runs it: up, run, down

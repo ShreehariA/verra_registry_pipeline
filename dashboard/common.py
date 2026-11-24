@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,7 @@ from verra_pipeline.lake import connect, lock_down, newest_manifest
 
 # what happened to the issued credits: same order and colour everywhere
 PARTS = ["retired", "cancelled", "available"]
-# Slots 1-3 of the dataviz reference palette, validated together on each theme's surface (validate_palette.py)
+# Slots 1-3 of the dataviz reference palette, validated together on each theme's surface with its validator
 PALETTE = {"light": ["#2a78d6", "#eb6834", "#1baf7a"], "dark": ["#3987e5", "#d95926", "#199e70"]}
 SURFACE = {"light": "#ffffff", "dark": "#0e1117"}  # the 2px gap between touching marks
 INK = {"light": "#22313a", "dark": "#e6ecee"}
@@ -153,7 +154,8 @@ def ledger_bar(credits: dict[str, Any]) -> alt.LayerChart:
     )
     labels = (
         alt.Chart(frame)
-        .mark_text(align="left", dx=10, color="#ffffff", fontWeight=600, fontSize=13)
+        # black: at least 4.5:1 contrast on every block colour, light and dark (white is 2.8:1 on the green)
+        .mark_text(align="left", dx=10, color="#000000", fontWeight=600, fontSize=13)
         .encode(x="start:Q", text="inside:N", tooltip=tooltip)
     )
     return (blocks + labels).properties(height=64)  # the 28px bar, and room for its legend underneath
@@ -217,7 +219,7 @@ def parts_chart(frame: pd.DataFrame, by: str, horizontal: bool, share: bool = Fa
             ),
             order=alt.Order("order:Q"),
             tooltip=[
-                alt.Tooltip(f"{by}:N", title=by.replace("_", " ")),
+                alt.Tooltip(f"{by}:N", title=by.replace("_", " ").capitalize()),
                 alt.Tooltip("part:N"),
                 alt.Tooltip("credits:Q", format=","),
                 alt.Tooltip("issued:Q", format=","),
@@ -248,10 +250,14 @@ def ranked_bars(frame: pd.DataFrame, name: str, value: str, colour: str) -> alt.
     return (bars + tips).properties(height=alt.Step(26))
 
 
+# one viewer query at a time: four heavy ones at once reached 1,048 MB, past the cloud demo's 1 GiB
+SQL_TURN = threading.Lock()
+
+
 def run_sql(lake: Path, sql: str) -> tuple[pd.DataFrame, float]:
     """A viewer's SQL, on its own locked-down copy of the tables, and how long the query took in milliseconds.
     MAX_ROWS + 1 rows back means the result was cut."""
-    with connect(lake, copy=True) as con:
+    with SQL_TURN, connect(lake, copy=True) as con:
         lock_down(con, SECONDS)
         started = time.perf_counter()
         result = con.sql(sql)  # None when the last statement returns no rows

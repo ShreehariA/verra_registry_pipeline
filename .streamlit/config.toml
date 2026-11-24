@@ -13,7 +13,7 @@ hideWelcomeMessage = true  # the welcome text looks up this machine's public IP 
 [client]
 toolbarMode = "viewer"     # no "Deploy" button or developer menu for people viewing the dashboard
 
-# The look (notes/dashboard-plan.md): a public ledger. Ink for text and controls, so the only saturated
+# The look (docs/dashboard.md, "The look"): a public ledger. Ink for text and controls, so the only saturated
 # colours are the three fates of a credit: retired, cancelled, available (validated with the dataviz skill).
 [[theme.fontFaces]]
 family = "Public Sans"

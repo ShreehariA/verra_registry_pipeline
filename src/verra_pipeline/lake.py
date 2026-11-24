@@ -74,7 +74,7 @@ def connect(lake: Path, copy: bool = False) -> duckdb.DuckDBPyConnection:
 
 
 def lock_down(con: duckdb.DuckDBPyConnection, seconds: int) -> None:
-    """Make a `connect(lake, copy=True)` connection safe for SQL typed by anyone (the dashboard's SQL view).
+    """Make a `connect(lake, copy=True)` connection safe for SQL typed by anyone (the dashboard's SQL page).
 
     It can't open any file, to read or write, nor reach the network or load an extension: it only has
     its own copy of the tables, which dies with it. Each query gets one thread, 256 MB and `seconds`,

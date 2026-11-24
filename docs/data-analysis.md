@@ -1,6 +1,25 @@
 # Data analysis: what the three files really contain
 
-Before any cleaning was written, every line of the 2026-11-17 snapshot was read and profiled. This page lists what was found, and the decision each finding led to. The numbers come from bronze, which holds every value exactly as delivered, with its file and line; [Check it yourself](#check-it-yourself) reproduces the key ones.
+Before any cleaning was written, every line of the 2026-11-17 snapshot was read and profiled. This page lists what was found, and the decision each finding led to. Every number on it is printed by a script in [`analysis/`](../analysis), which reads the files exactly as delivered and writes nothing:
+
+```bash
+make analysis                      # every script, in the order of this page: about 5 seconds
+uv run python analysis/owners.py   # one of them
+```
+
+| Script | Section of this page | What it asks |
+|---|---|---|
+| `files.py` | [The three files at a glance](#the-three-files-at-a-glance), [File format](#file-format) | Byte by byte, with Python's own CSV reader: encoding, line endings, records, odd characters |
+| `columns.py` | [How the files were read](#how-the-files-were-read) | Each column's blanks, distinct values and most common values |
+| `dates.py` | [Dates](#dates) | Each file's date format, first and last date, and the undated retirements |
+| `vintages.py` | [Vintages](#vintages) | Single years and ranges, and the vintage against the period in the serial |
+| `serials.py` | [Serial numbers and batches](#serial-numbers-and-batches) | What a serial holds, and how every retirement traces back to its issued batch |
+| `owners.py` | [Owners](#owners-question-3), [the 10 largest retirers](#reference-numbers) | Blanks, placeholders, spellings, mis-encoded names, and the ranking before and after cleaning |
+| `projects.py` | [Projects and places](#projects-and-places) | Whether the files agree on projects, and whether places can be trusted |
+| `reasons.py` | [Reasons and multi-value fields](#reasons-and-multi-value-fields) | Why credits were retired or cancelled, and the fields holding several values |
+| `totals.py` | [Reference numbers](#reference-numbers) | The totals and the 10 largest projects |
+
+The scripts share `analysis/common.py`: it loads the newest snapshot in `data/landing` with the pipeline's own reader, as text, and lines the three files up as one table of events. A test (`tests/test_real_snapshot.py`) checks that they still print the key numbers quoted here: the totals, the 34,832 range matches, the 453,415 credits retired early, the credits with no owner, and Interface's 745,954.
 
 **Contents**
 1. [How the files were read](#how-the-files-were-read)
@@ -43,7 +62,7 @@ Two passes:
 | The last retirement record is cut off: 9 of 20 fields, with no serial number and no quantity. | Quarantined with its exact text and the reason. It's 1 line in 23,283, far inside the 1% budget. Its credits can't be known, so no total includes them. |
 | 7 retirement records hold a line break inside a quoted field: Portuguese text, then the English. A reader that splits on line breaks makes 14 broken records of them. | The CSV reader follows the quotes, and each record keeps the line it starts on. |
 | Odd whitespace in retirements: 99 no-break spaces, 17 tabs inside fields (`Yan<tab>Liu`), and spaces before, after and doubled inside owner names. | Bronze keeps it all. Silver trims every text value, and makes every run of whitespace one space. |
-| 17 owner names were mis-encoded before Verra exported them: `StÃ¤dtische Werke AG` for `Städtische Werke AG`. The file itself is valid UTF-8, so no choice of encoding fixes it. | Silver repairs owner names: it encodes the text as Windows-1252 and decodes it as UTF-8, keeping the original when that fails. Genuine text such as `SÃO PAULO` stays as it is. |
+| 17 retirements carry an owner name that was mis-encoded before Verra exported it: `StÃ¤dtische Werke AG` for `Städtische Werke AG`. The file itself is valid UTF-8, so no choice of encoding fixes it. 3 of them (`Lavola … EV000120190024â€`) lost a character before export, so they can't be repaired. | Silver repairs owner names: it encodes the text as Windows-1252 and decodes it as UTF-8, keeping the original when that fails. That repairs 14 of the 17, 8 distinct names. Genuine text such as `SÃO PAULO` stays as it is. |
 
 ### Dates
 
@@ -149,7 +168,7 @@ Almost all of the largest retirers' credits come from big hydro, wind and gas po
 
 ### Check it yourself
 
-After `make build`, run these with `make query`, or paste the SQL into the dashboard's SQL page:
+`make analysis` prints every number on this page from the files as delivered. To compare them with what the pipeline built, run these after `make build`, with `make query` or on the dashboard's SQL page:
 
 ```bash
 # the undated retirements: 19 rows, 209,992 credits
@@ -164,7 +183,7 @@ make query SQL="select distinct owner_rank, owner_name, owner_credits from gold.
 
 ## Left alone, on purpose
 
-- **Owner names written in Retirement Reason Details.** 1,214 retirements with no owner say "on behalf of …" there, for example "Retired for Interface Inc. 2009 Cool Carpet Program". Free text needs real language handling.
+- **Owner names written in Retirement Reason Details.** 1,214 retirements with a blank owner say who they were for there ("on behalf of …"), and 51 name Interface (1,114,109 credits), as in "Retired for Interface Inc. 2009 Cool Carpet Program". Free text needs real language handling.
 - **Splitting multi-value fields,** until there's a list of the known values.
 - **Standard country codes, and state spellings** (`Tamilnadu` and `Tamil Nadu`).
 - **Owners whose names differ by more** than case, accents, punctuation or a final legal form. `Chevron Petroleum Company S.A NIT 860.005.223-9` and `CHEVRON PETROLEUM COMPANY NIT 860005223-9` stay apart, because the legal form sits in the middle.

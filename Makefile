@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup check build query dashboard clean
+.PHONY: help setup check build query dashboard analysis clean
 
 help: ## List the commands
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-10s %s\n", $$1, $$2}'
@@ -25,6 +25,11 @@ query: ## Run SQL, e.g. make query SQL="select count(*) from bronze.retirements"
 dashboard: ## Serve the dashboard on the newest build at http://localhost:8501
 	@echo "Dashboard: http://localhost:8501 (Ctrl+C stops it)"
 	$(UV) run streamlit run dashboard/app.py
+
+analysis: ## Print the data analysis behind docs/data-analysis.md (reads data/landing; writes nothing)
+	@for script in files columns dates vintages serials owners projects reasons totals; do \
+		$(UV) run python analysis/$$script.py || exit 1; \
+	done
 
 clean: ## Delete everything the pipeline generated (lake/); never touches data/landing
 	rm -rf lake

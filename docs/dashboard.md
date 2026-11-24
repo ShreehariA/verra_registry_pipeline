@@ -12,6 +12,13 @@
 | Data quality | `/data_quality` | Each check of the quality gate with its status, the records that couldn't be read, and each file with its checksum |
 | SQL | `/sql` | Any query on any table, from the raw rows to the answers ([below](#the-sql-page)) |
 
+```bash
+make build && make dashboard                                        # http://localhost:8501; Ctrl+C stops it
+docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra     # the same, from the image (docker build -t verra .)
+```
+
+A query can travel in the address: `http://localhost:8501/sql?sql=SELECT count(*) FROM gold.dim_project` opens the SQL page and runs it.
+
 | Overview | Retirers (Q3) |
 |---|---|
 | ![Overview](images/overview.png) | ![Retirers](images/retirers.png) |

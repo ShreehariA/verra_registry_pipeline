@@ -35,8 +35,11 @@ You need [uv](https://docs.astral.sh/uv/). It installs Python 3.13 if it's missi
 make setup       # create .venv with the locked dependencies
 make build       # the one command: raw files to bronze, silver and gold, behind a quality gate (about 1 second)
 make dashboard   # http://localhost:8501
-make check       # lint, type-check and run the 66 tests
+make check       # lint, type-check and run the 67 tests
+make analysis    # re-run the data analysis behind the findings below
 ```
+
+Step by step, with what you should see and what to do when you don't: [the operating procedure](docs/sop.md).
 
 Without `make`: `uv sync`, then `uv run verra build`, then `uv run streamlit run dashboard/app.py`.
 
@@ -101,19 +104,19 @@ More: [checks and tests](docs/quality.md).
 
 ## Running it on another snapshot
 
-Put the three files in `data/landing/` with the same names (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`) and run `make build`.
+Put the three files in `data/landing/` with the same names (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`) and run `make clean build`.
 - **Which date:** the newest date that has all three files.
 - **Other choices for one run:**
   - `uv run verra build --snapshot 2026-11-17` picks a date;
   - `--landing <folder>` reads another folder;
   - `--lake <folder>` writes elsewhere.
-- **Every snapshot is kept** in its own folder (`snapshot_date=…`). SQL and the dashboard show the newest one that finished building.
+- **Every snapshot is kept** in its own folder (`snapshot_date=…`). SQL and the dashboard show the newest one that finished building, so `make clean` first empties the lake: then they show exactly the snapshot you built, even if it's older than one built before.
 
 What happens to input it can't trust:
 
 | The input | What happens |
 |---|---|
-| A date with a file missing | That date is skipped, and the newest complete date is built; the report names the date. It's an error only when no date is complete, or when `--snapshot` asks for that date. |
+| A date with a file missing | That date is skipped, and the newest complete date is built; the report's first line names the date built. It's an error only when no date is complete, or when `--snapshot` asks for that date. |
 | A required column missing, or a file mostly unreadable (over 1% of its lines) | The run stops with one clear sentence and writes nothing. |
 | A record that can't be read (a cut-off last line, a broken quote) | It goes to `bronze.rejected_records` with its reason and exact text, and the run carries on. |
 | A renamed header | One alias line in `pipeline.toml` maps it to the old name. |
@@ -202,7 +205,7 @@ More: [the data model](docs/data-model.md): how each value is read, how owner sp
 
 ## What the data analysis found
 
-Before any cleaning was written, every line of the three files was read and profiled: encodings, line endings, every column's values, and how the files link. These findings shaped the pipeline most:
+Before any cleaning was written, every line of the three files was read and profiled: encodings, line endings, every column's values, and how the files link. The scripts are in [`analysis/`](analysis), one per question, and `make analysis` re-runs them all. These findings shaped the pipeline most:
 
 | Found in the files | How it's handled |
 |---|---|
@@ -226,7 +229,7 @@ More: [the data analysis](docs/data-analysis.md): every finding and the decision
 | DuckDB, inside the process | About 10 MB a day: it reads and writes Parquet natively, with nothing to run or pay for | Spark: a cluster's start-up time, cost and operations buy nothing at this size |
 | Parquet files plus DuckDB views made on demand | Files stay byte-identical; nothing locks the lake while the dashboard reads it | A saved DuckDB file: its bytes change on every write, and only one process can write it |
 | Everything built in memory, then written | A failed check writes nothing (integrity rule 6) | Writing each layer as it's made |
-| SQL for meaning, Python for mechanics | The model reads as SQL; the CSV handling and writing are tested Python | dbt: a second tool and its setup for about 350 lines of SQL |
+| SQL for meaning, Python for mechanics | The model reads as SQL; the CSV handling and writing are tested Python | dbt: a second tool and its setup for about 360 lines of SQL |
 | One fact table for all three kinds of event | Balances are sums by kind, and the gate compares one table with silver | Three fact tables; the 3NF model of the earlier design (`docs/architecture.md`) |
 | Flag, never drop | The totals reconcile; problems are counted, not hidden | Filtering bad rows in silver |
 | Errors stop the build only when a number would be wrong | Warnings (undated rows, no owner) are facts about Verra's data, not reasons to publish nothing | Failing on every oddity |
@@ -262,7 +265,7 @@ The marts join the dimensions, so the last check also proves no event points at 
 
 **13 warnings** report facts about Verra's data, and the build goes on: unreadable records, dates and serials, credits outside every batch or used twice, negative balances, and retirements with no named owner. Four fire on this snapshot: 1 quarantined record, 19 undated retirements, 20 retirements dated before their batch was issued, and 7,390 retirements with no named owner.
 
-**66 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
+**67 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, the data analysis that first found them, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
 
 More: [checks and tests](docs/quality.md): every check and today's result, each integrity rule with the test that proves it, and the tests file by file.
 
@@ -305,7 +308,7 @@ More: [the cloud demo](docs/deploy.md): what it creates, the two sign-ins, the s
 ## What's next
 
 - **Stream large files.** The reader holds a whole file in memory, about 15 times its size. That's fine up to roughly 100 MB a file (`shortcut:` in `ingest.py`).
-- **Read owners from Retirement Reason Details.** 1,214 retirements with no owner say "on behalf of …" there. Interface alone has another ~700,000 credits written that way.
+- **Read owners from Retirement Reason Details.** 1,214 retirements with a blank owner say who they were for there ("on behalf of …"). 51 of them name Interface, for another 1,114,109 credits: "Retired for Interface Inc. 2009 Cool Carpet Program".
 - **Split the multi-value fields** (scopes, methodologies, labels) against a list of the known values, since single values contain commas.
 - **Map countries to ISO codes.** The 2-letter code inside the serial is often wrong, so it can't be used as is.
 - **Compare snapshots day to day:** what changed, which retirements appeared, which records were restated.
@@ -320,9 +323,10 @@ Short pages in `docs/`, each one the detail behind a section above:
 
 | Page | What it covers |
 |---|---|
+| [The operating procedure](docs/sop.md) | Step by step, with commands: set up, build, look at the answers, run a new snapshot, test, re-run the analysis, Docker, deploy, change things, and what to do when something goes wrong |
 | [How a build works](docs/pipeline.md) | The steps, reading files without trusting them, all-or-nothing writes, the lake, byte-identical output |
 | [The data model](docs/data-model.md) | How each value is read, how owner spellings are merged, how each mart is made, example queries |
-| [The data analysis](docs/data-analysis.md) | What the three files really contain, the decision each finding led to, the reference numbers |
+| [The data analysis](docs/data-analysis.md) | What the three files really contain, the decision each finding led to, the reference numbers, and the scripts in `analysis/` that found them |
 | [Checks and tests](docs/quality.md) | Why the numbers can be trusted: the 19 checks and today's results, each integrity rule with its test |
 | [Decisions, alternatives and limits](docs/decisions.md) | The reasoning behind each choice, what happens when Verra changes its files, the known gaps |
 | [The dashboard](docs/dashboard.md) | What each page answers and why each chart, the look and the rules behind it, the SQL page and its guardrails |
@@ -336,7 +340,8 @@ pipeline.toml          settings: paths, file names, reject budget, columns per e
 src/verra_pipeline/    the pipeline: ingest.py, transform.py, lake.py, config.py, cli.py
 sql/                   the model: macros.sql, silver/, gold/, checks.sql
 dashboard/             the Streamlit dashboard: app.py (the pages), app_pages/, common.py (data, colours, charts), static/ (its font)
-tests/                 66 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
+tests/                 67 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
+analysis/              the data analysis: one script per question asked of the files (make analysis)
 deploy/main.tf         the cloud demo's resources, in Terraform
 deploy/gcp.sh          runs it: up, run, down
 Dockerfile             one image for the job and the dashboard

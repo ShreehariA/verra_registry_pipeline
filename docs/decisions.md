@@ -4,7 +4,7 @@
 
 ## Why it's small
 
-The brief asks for a few hours of work, and says it doesn't expect a production system. A first version (git commit `7f4be62`) took about 4,000 lines just to load bronze. It was rebuilt at about 970 lines for the whole pipeline, raw files to gold: 610 of Python and 360 of SQL. The dashboard adds about 1,090 (seven pages and the SQL workspace), and the tests about 990. Every integrity rule and its test was kept. [The architecture](architecture.md#what-the-first-version-had-and-why-it-went) lists what went, and why.
+The brief asks for a few hours of work, and says it doesn't expect a production system. A first version (git commit `7f4be62`) took about 4,000 lines just to load bronze. It was rebuilt at about 970 lines for the whole pipeline, raw files to gold: 610 of Python and 360 of SQL. The dashboard adds about 1,090 (seven pages and the SQL workspace), the tests about 1,040, and the data analysis behind it all about 480 (`analysis/`). Every integrity rule and its test was kept. [The architecture](architecture.md#what-the-first-version-had-and-why-it-went) lists what went, and why.
 
 ## Tools
 
@@ -14,7 +14,7 @@ The brief asks for a few hours of work, and says it doesn't expect a production 
 | Python's `csv` module to read, SQL to model | Exact control over quotes, line numbers and raw text; SQL is easy to review. | pandas: `read_csv` guesses types and drops the line numbers and raw text that quarantine needs. |
 | Plain SQL files, run in a fixed order | About 360 lines of SQL. | dbt: a second tool, with its own project and setup. |
 | Streamlit | Python, so it reads the same views as `verra query`, and runs in the same image as the pipeline. | Looker Studio, in the production design: it would read gold from BigQuery, a warehouse this volume doesn't need. |
-| A SQL page inside the dashboard, each query on its own locked-down copy of the tables | Anyone can check a number down to its raw line, or ask a question the pages don't answer, on the public page too ([how it's kept safe](dashboard.md#your-own-sql)). | A separate SQL tool beside the dashboard: one more thing to host and secure. Letting queries read the lake's folder: DuckDB would also let them write there. |
+| A SQL page inside the dashboard, each query on its own locked-down copy of the tables | Anyone can check a number down to its raw line, or ask a question the pages don't answer, on the public page too ([how it's kept safe](dashboard.md#the-sql-page)). | A separate SQL tool beside the dashboard: one more thing to host and secure. Letting queries read the lake's folder: DuckDB would also let them write there. |
 | TOML settings | In the standard library, allows comments, and matches `pyproject.toml`. | JSON table definitions checked against JSON Schema (the first version). |
 
 ## Storage
@@ -57,7 +57,7 @@ The brief asks for a few hours of work, and says it doesn't expect a production 
 
 None of these changes today's numbers. Each is a deliberate shortcut, or a small fix for later.
 
-- **Files are read whole into memory.** The peak is 272 MB for 9.4 MB of files. Stream them past about 100 MB a file.
+- **Files are read whole into memory.** The peak is about 300 MB for 9.4 MB of files. Stream them past about 100 MB a file.
 - **One build at a time.** Two builds at once would write the same temporary file names. That's fine for one scheduled job; add a lock if builds ever run in parallel.
 - **A restated day replaces the earlier version,** so the earlier checksum isn't kept. The production design's run catalog keeps that history.
 - **`verra query` reads the lake named in the settings.** Use `--config` with a copy to read another.

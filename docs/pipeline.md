@@ -6,7 +6,7 @@
 
 ## The steps
 
-1. **Find the snapshot.** Files are named `<prefix>_<YYYY-MM-DD>.csv`. The newest date that has all three files is built. An incomplete date is skipped, and the report names it. `--snapshot` picks a date, and then a missing file is an error.
+1. **Find the snapshot.** Files are named `<prefix>_<YYYY-MM-DD>.csv`. The newest date that has all three files is built, and the report's first line names it. An incomplete date is skipped without a word, so check that date. `--snapshot` picks a date, and then a missing file is an error.
 2. **Read and check every file** (`ingest.py`). Nothing is written yet.
 3. **Load bronze** into one in-memory DuckDB database.
 4. **Build silver and gold** by running the SQL files in `sql/` (`transform.py`).
@@ -74,3 +74,14 @@ A test rebuilds and compares every file. Built in the Docker image on Linux, the
 - **`verra build`** takes `--snapshot <date>`, `--landing <folder>` and `--lake <folder>` for one run, and `verra --config <file> build` reads other settings.
 - **`verra query "<SQL>"`** runs SQL on the newest finished snapshot (`make query SQL="…"`).
 - **Errors are one sentence,** for example: `error: the quality gate failed, so nothing was written: every quantity is a whole number above zero: 1 row(s)`.
+
+```bash
+make build                                      # the newest complete snapshot in data/landing
+make clean build                                # from an empty lake, so readers show exactly this snapshot
+uv run verra build --snapshot 2026-11-17        # a given date
+uv run verra build --landing <folder> --lake <folder>
+uv run verra --config other.toml build          # other settings
+make query SQL="select * from bronze.rejected_records"
+```
+
+Step by step, with what you should see: [the operating procedure](sop.md).

@@ -2,14 +2,18 @@
 Skipped when its files are not in data/landing, e.g. after a reviewer swaps in their own snapshot."""
 
 import dataclasses
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
 import pytest
 
 from tests.verra_files import REPO
+from verra_pipeline import PipelineError
 from verra_pipeline.cli import build
 from verra_pipeline.config import load
+from verra_pipeline.ingest import find_snapshot
 from verra_pipeline.lake import connect
 
 SNAPSHOT = date(2026, 11, 17)
@@ -69,3 +73,35 @@ def test_the_shipped_snapshot_gives_the_reference_numbers(tmp_path: Path) -> Non
         (2, "Brisbane City Council", 712_027),
         (3, "Delta Air Lines", 644_713),
     ]
+
+
+def newest_in_landing() -> date | None:
+    try:
+        return find_snapshot(load(REPO / "pipeline.toml"))[0]
+    except PipelineError:  # no complete snapshot at all
+        return None
+
+
+@pytest.mark.skipif(
+    newest_in_landing() != SNAPSHOT,
+    reason="the analysis reads the newest snapshot in data/landing, and that isn't 2026-11-17",
+)
+def test_the_data_analysis_still_prints_the_numbers_the_docs_quote() -> None:
+    printed = ""
+    for script in sorted((REPO / "analysis").glob("*.py")):
+        if script.name != "common.py":
+            result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+            assert result.returncode == 0, f"{script.name} failed:\n{result.stderr}"
+            printed += result.stdout
+
+    for number in (
+        "198511826",  # issued, and then retired, cancelled and available
+        "56564196",
+        "6123377",
+        "135824253",
+        "34832",  # matches when serial ranges alone are compared: the trap
+        "453415",  # credits retired before their batch was issued
+        "39846198",  # retired credits with no owner
+        "745954",  # Interface, Inc., the largest retirer once its spellings are merged
+    ):
+        assert number in printed, number

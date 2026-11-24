@@ -44,6 +44,7 @@ deploy/gcp.sh down            # delete everything up made, the bucket's files in
 - **Nothing changes without a "yes".** Terraform shows its plan first, and anything but `yes` changes nothing.
 - **Dry runs change nothing.** With `--dry-run`, `up` and `down` only show Terraform's plan, and `run` prints its commands. A test checks this with fake `terraform` and `gcloud` commands that record every call.
 - **Least privilege.** Each service account has one role, on the one bucket. The dashboard's mount is read-only, so even a bug in it can't damage the lake.
+- **The public SQL page is locked down.** Each query runs on its own in-memory copy of the tables, with no file or network access, 256 MB and 10 seconds ([details](dashboard.md#your-own-sql)).
 - **`down` deletes everything `up` created,** the bucket's files and Cloud Build's uploaded source included. It leaves the APIs that `up` turned on, which cost nothing. Keep `deploy/terraform.tfstate` until `down`: without it, Terraform forgets what it made.
 
 CI checks the Terraform's format and validity on every push, offline.

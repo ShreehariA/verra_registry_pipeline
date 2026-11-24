@@ -50,12 +50,13 @@ def write_json(document: dict[str, Any], path: Path) -> None:
     _replace_atomically(path, lambda temporary: temporary.write_text(text, encoding="utf-8"))
 
 
-def connect(lake: Path) -> duckdb.DuckDBPyConnection:
+def connect(lake: Path, copy: bool = False) -> duckdb.DuckDBPyConnection:
     """An in-memory database with a view per table of the newest finished snapshot, e.g. gold.dim_project.
 
     A build writes its manifest last, so a snapshot without one was interrupted and stays hidden.
     The views are not saved to a file: a DuckDB file's bytes change on every write, and only one
     process can write it, so a build would fail while the dashboard has it open.
+    With `copy`, each table is loaded into memory instead, so the connection needs no files afterwards.
     """
     snapshot = newest_manifest(lake).parent.name
     con = duckdb.connect()
@@ -66,10 +67,30 @@ def connect(lake: Path) -> duckdb.DuckDBPyConnection:
         location = str(path.resolve()).replace("'", "''")
         con.execute(f"CREATE SCHEMA IF NOT EXISTS {layer}")
         con.execute(
-            f"CREATE VIEW {layer}.{table} AS "
+            f"CREATE {'TABLE' if copy else 'VIEW'} {layer}.{table} AS "
             f"SELECT * FROM read_parquet('{location}', hive_partitioning = false)"
         )
     return con
+
+
+def lock_down(con: duckdb.DuckDBPyConnection, seconds: int) -> None:
+    """Make a `connect(lake, copy=True)` connection safe for SQL typed by anyone (the dashboard's SQL view).
+
+    It can't open any file, to read or write, nor reach the network or load an extension: it only has
+    its own copy of the tables, which dies with it. Each query gets one thread, 256 MB and `seconds`,
+    and the settings are locked, so no query can undo this. Allowing just the lake's folder isn't
+    enough: DuckDB would let a query write there, over the files the dashboard reads.
+    shortcut: every query copies the whole snapshot (50 ms and 44 MB today); past a few hundred MB,
+    open a read-only DuckDB file of the snapshot instead.
+    """
+    con.execute(f"""
+        SET temp_directory = '';  -- nowhere to spill: too big for memory fails, never writes to disk
+        SET enable_external_access = false;  -- after this, DuckDB won't change temp_directory
+        SET threads = 1;
+        SET memory_limit = '256MB';
+        SET max_execution_time = {seconds * 1000};  -- milliseconds
+        SET lock_configuration = true;
+    """)
 
 
 def newest_manifest(lake: Path) -> Path:

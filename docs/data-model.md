@@ -52,7 +52,7 @@ The quality gate checks that every mart adds up to the fact table, and the marts
 
 ## Example queries
 
-After `make build`:
+After `make build`, run them with `make query`, or paste the SQL into the dashboard's SQL page:
 
 ```bash
 make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"

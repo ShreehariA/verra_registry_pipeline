@@ -149,7 +149,7 @@ Almost all of the largest retirers' credits come from big hydro, wind and gas po
 
 ### Check it yourself
 
-After `make build`:
+After `make build`, run these with `make query`, or paste the SQL into the dashboard's SQL page:
 
 ```bash
 # the undated retirements: 19 rows, 209,992 credits

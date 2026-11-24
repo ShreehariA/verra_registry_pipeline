@@ -7,7 +7,7 @@ Turns Verra's three daily registry exports into a clean, tested data model, with
 
 **Live demo:** not deployed yet. `deploy/gcp.sh up` creates it ([Cloud demo](#cloud-demo)), and its URL goes here.
 
-![The dashboard: the largest retirers and what they retire](docs/images/retirers.png)
+![The dashboard's overview: every credit issued, split into retired, cancelled and still available](docs/images/overview.png)
 
 **Contents**
 1. [Quick start](#quick-start)
@@ -35,7 +35,7 @@ You need [uv](https://docs.astral.sh/uv/). It installs Python 3.13 if it's missi
 make setup       # create .venv with the locked dependencies
 make build       # the one command: raw files to bronze, silver and gold, behind a quality gate (about 1 second)
 make dashboard   # http://localhost:8501
-make check       # lint, type-check and run the 51 tests
+make check       # lint, type-check and run the 66 tests
 ```
 
 Without `make`: `uv sync`, then `uv run verra build`, then `uv run streamlit run dashboard/app.py`.
@@ -73,7 +73,7 @@ Quality gate passed: all 6 error checks are clean
 Credits: issued 198,511,826 · retired 56,564,196 · cancelled 6,123,377 · available 135,824,253
 ```
 
-To query the model directly: `make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"`.
+To query any table directly, raw rows included: `make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"`, or the dashboard's SQL page.
 
 ## The answers for the 2026-11-17 snapshot
 
@@ -141,7 +141,7 @@ A failed check leaves the lake exactly as it was. Readers (`verra query`, the da
 **Where things live:**
 - **`pipeline.toml`:** where the files are, how they're named, the reject budget, and the columns each export must have.
 - **`sql/`:** what the data means: the macros, silver, gold and the checks.
-- **Python** (`src/verra_pipeline/`, about 590 lines): how to read untrusted CSV, write atomically and run the steps.
+- **Python** (`src/verra_pipeline/`, about 610 lines): how to read untrusted CSV, write atomically and run the steps.
 
 More: [how a build works](docs/pipeline.md), step by step, and [the architecture](docs/architecture.md), with the production design it was cut down from.
 
@@ -262,23 +262,28 @@ The marts join the dimensions, so the last check also proves no event points at 
 
 **13 warnings** report facts about Verra's data, and the build goes on: unreadable records, dates and serials, credits outside every batch or used twice, negative balances, and retirements with no named owner. Four fire on this snapshot: 1 quarantined record, 19 undated retirements, 20 retirements dated before their batch was issued, and 7,390 retirements with no named owner.
 
-**51 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, every dashboard view, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
+**66 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
 
 More: [checks and tests](docs/quality.md): every check and today's result, each integrity rule with the test that proves it, and the tests file by file.
 
 ## The dashboard
 
-`make dashboard` serves it at http://localhost:8501. Five views, each with its own address (`?view=Retirers`):
+`make dashboard` serves it at http://localhost:8501: seven pages, each with its own address.
 
 | Projects (Q1) | Vintages (Q2) |
 |---|---|
 | ![Q1](docs/images/projects.png) | ![Q2](docs/images/vintages.png) |
-| **Over time** | **Data quality** |
-| ![Over time](docs/images/over-time.png) | ![Data quality](docs/images/data-quality.png) |
+| **Retirers (Q3)** | **SQL** |
+| ![Q3](docs/images/retirers.png) | ![SQL](docs/images/sql.png) |
 
-Stacked bars show what happened to issued credits, in the same three colours everywhere. Every chart has a table under it, and the headline numbers are the totals the quality gate checked.
+- **Overview:** every credit issued, as one bar split into retired, cancelled and still available, then each question answered in a line.
+- **Projects, Vintages, Retirers:** the three questions. Pick a project or an owner to see what's behind its numbers.
+- **Over time** and **Data quality:** activity per year, and how far the numbers can be trusted.
+- **SQL:** any query on any table, raw rows included, read-only. After DBeaver: a navigator that searches tables and columns, examples, a history, each table's profile, and the star schema.
 
-More: [the dashboard](docs/dashboard.md): what each view answers, how the charts were chosen, and what makes it safe as a public page.
+The three fates of a credit wear the same three colours everywhere, checked for colour blindness in light and dark, and every chart has a table under it.
+
+More: [the dashboard](docs/dashboard.md): the chart for each question and why, the look, and the SQL page's guardrails.
 
 ## Cloud demo
 
@@ -320,7 +325,7 @@ Short pages in `docs/`, each one the detail behind a section above:
 | [The data analysis](docs/data-analysis.md) | What the three files really contain, the decision each finding led to, the reference numbers |
 | [Checks and tests](docs/quality.md) | Why the numbers can be trusted: the 19 checks and today's results, each integrity rule with its test |
 | [Decisions, alternatives and limits](docs/decisions.md) | The reasoning behind each choice, what happens when Verra changes its files, the known gaps |
-| [The dashboard](docs/dashboard.md) | What each view answers, how the charts were chosen, what makes it safe as a public page |
+| [The dashboard](docs/dashboard.md) | What each page answers and why each chart, the look and the rules behind it, the SQL page and its guardrails |
 | [The cloud demo](docs/deploy.md) | What Terraform creates, how to deploy it, the safety rules, what to do if something fails |
 | [The architecture](docs/architecture.md) | As built against the production design, with diagrams, and the path to production |
 
@@ -330,8 +335,8 @@ Short pages in `docs/`, each one the detail behind a section above:
 pipeline.toml          settings: paths, file names, reject budget, columns per export
 src/verra_pipeline/    the pipeline: ingest.py, transform.py, lake.py, config.py, cli.py
 sql/                   the model: macros.sql, silver/, gold/, checks.sql
-dashboard/app.py       the Streamlit dashboard
-tests/                 51 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
+dashboard/             the Streamlit dashboard: app.py (the pages), app_pages/, common.py (data, colours, charts), static/ (its font)
+tests/                 66 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
 deploy/main.tf         the cloud demo's resources, in Terraform
 deploy/gcp.sh          runs it: up, run, down
 Dockerfile             one image for the job and the dashboard
@@ -340,4 +345,4 @@ data/landing/          the raw Verra files, never modified
 lake/                  generated by `make build` (git-ignored; `make clean` deletes it)
 ```
 
-**Scope.** The brief asks for about 2–4 hours and says it doesn't expect a production system. The core is small: the pipeline (about 590 lines of Python and 360 of SQL), the dashboard and the tests. The data analysis, the quality gate and the cloud demo go further, because the brief says the numbers being right matters most, and they're what proves it.
+**Scope.** The brief asks for about 2–4 hours and says it doesn't expect a production system. The core is small: the pipeline (about 610 lines of Python and 360 of SQL), the dashboard and the tests. The data analysis, the quality gate and the cloud demo go further, because the brief says the numbers being right matters most, and they're what proves it.

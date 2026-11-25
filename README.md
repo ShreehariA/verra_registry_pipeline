@@ -193,6 +193,7 @@ It's live at [the dashboard](https://verra-dashboard-k2k4mrcqsa-uc.a.run.app). H
 - **Map countries to ISO codes.**
 - **Compare snapshots day to day:** what changed, and what was restated.
 - **Run it daily on its own,** with alerts on new warnings.
+- **Add sign-in and tighten security.** Today anyone with the link can open the dashboard and its SQL page. Next: Google sign-in in front of it (Identity-Aware Proxy), and a limit on how many queries one person can run.
 - **Deploy from CI.** Today CI only checks and tests.
 - **Bring back parts of the [first version](docs/architecture.md#what-the-first-version-had-and-why-it-went),** once more registries or a team need them: schema files that declare every table, a class per step so a second registry can plug in its own reader, and typed errors.
 

@@ -4,7 +4,7 @@ Real runs, and how long each step took. Newest first.
 
 ## 25 Nov 2026: first deploy to Google Cloud
 
-Project `verra-demo-7342`, region us-central1, from commit `ca1dbe2`. Live at https://verra-dashboard-k2k4mrcqsa-uc.a.run.app.
+Project `verra-demo-7342`, region us-central1, from commit `ca1dbe2`. Live at https://verra-dashboard-480199239724.us-central1.run.app; the older-style address, https://verra-dashboard-k2k4mrcqsa-uc.a.run.app, reaches the same service.
 
 | Step | Took | What happened |
 |---|---|---|
@@ -22,7 +22,7 @@ Project `verra-demo-7342`, region us-central1, from commit `ca1dbe2`. Live at ht
 - nothing private is reachable from the internet: the bucket's files answer 403 and the image registry 401;
 - the SQL page's guardrails hold on the live server: reading `/etc/passwd`, writing a file, installing an extension, switching file access back on and a query that never ends were all refused;
 - the cloud lake holds the same data as a local build: every table, row for row, in the same order. The manifest is byte-identical. The Parquet files differ by a few bytes each, because the same DuckDB build compressed some pages differently there; the encodings and the sizes before compression are identical. The likeliest cause is the CPU type: x86 in Google Cloud, Arm on the Mac.
-- **found, and fixed in `main.tf` for the next `up`:** Cloud Run's default 300 s request timeout cut each viewer's connection every 5 minutes (a live watch saw it at 303 s, then Streamlit reconnect). The dashboard now allows an hour, and a reconnecting page goes back to the same copy. And setting CPU limits had quietly made Cloud Run bill CPU for each instance's whole life; `cpu_idle = true` bills it only while a request is open;
+- **found, and fixed by a second `up` the same day** (dashboard revision `00002`): Cloud Run's default 300 s request timeout cut each viewer's connection every 5 minutes (a live watch saw it at 303 s, then Streamlit reconnect). The dashboard now allows an hour, and a reconnecting page goes back to the same copy. And setting CPU limits had quietly made Cloud Run bill CPU for each instance's whole life; `cpu_idle = true` bills it only while a request is open;
 - the job's log shows `BufferedWriteHandler.OutOfOrderError` for 5 files. The bucket mount uploads a file as it's written, and DuckDB wrote some bytes out of order, so the mount fell back to its slower way of writing those files. They're complete: the comparison above covers them.
 
 ## Local runs

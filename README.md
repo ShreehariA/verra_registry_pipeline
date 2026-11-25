@@ -1,6 +1,6 @@
 # Verra Registry Pipeline
 
-**Live dashboard:** https://verra-dashboard-k2k4mrcqsa-uc.a.run.app (on Google Cloud; after a quiet spell, the first visit takes a few seconds to start)
+**Live dashboard:** https://verra-dashboard-480199239724.us-central1.run.app (on Google Cloud; after a quiet spell, the first visit takes a few seconds to start)
 
 Turns Verra's daily carbon-credit exports into clean, tested tables, with a dashboard that answers three questions:
 
@@ -183,7 +183,7 @@ GCP_PROJECT=<your-project> deploy/gcp.sh run            # upload data/landing an
 GCP_PROJECT=<your-project> deploy/gcp.sh down           # delete everything up made
 ```
 
-It's live at [the dashboard](https://verra-dashboard-k2k4mrcqsa-uc.a.run.app). How long each step took, and what the deploy proved: [the run log](docs/run-log.md). More: [the cloud demo](docs/deploy.md).
+It's live at [the dashboard](https://verra-dashboard-480199239724.us-central1.run.app). How long each step took, and what the deploy proved: [the run log](docs/run-log.md). More: [the cloud demo](docs/deploy.md).
 
 ## What's next
 

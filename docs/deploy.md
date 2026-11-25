@@ -1,6 +1,6 @@
 # The cloud demo
 
-The same image runs on Google Cloud. A Cloud Run job builds the lake in a Cloud Storage bucket, and a public Cloud Run service shows the dashboard. Terraform (`deploy/main.tf`) creates and deletes it all, and `deploy/gcp.sh` runs Terraform. It's live at https://verra-dashboard-k2k4mrcqsa-uc.a.run.app.
+The same image runs on Google Cloud. A Cloud Run job builds the lake in a Cloud Storage bucket, and a public Cloud Run service shows the dashboard. Terraform (`deploy/main.tf`) creates and deletes it all, and `deploy/gcp.sh` runs Terraform. It's live at https://verra-dashboard-480199239724.us-central1.run.app.
 
 ![The cloud demo](architecture/verra-pipeline-as-built-infra.png)
 

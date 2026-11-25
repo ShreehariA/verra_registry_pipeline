@@ -1,8 +1,4 @@
-"""What every page of the dashboard shares: the lake's data, the colours, number formats and the chart forms.
-
-The chart forms follow the dataviz skill: the ledger bar for one whole split into the three fates of a
-credit, a meter for one share, stacked bars for several wholes, and ranked bars in one hue.
-"""
+"""What the pages share: the lake's data, the colours, the number formats and the charts."""
 
 from __future__ import annotations
 

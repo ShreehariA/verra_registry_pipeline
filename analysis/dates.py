@@ -1,7 +1,4 @@
-"""Dates: the format each file uses, the first and last date, and the retirements with no date.
-
-Behind docs/data-analysis.md, "Dates", and "The files don't end on the same day".
-"""
+"""docs/data-analysis.md, "Dates": each file's date format, first and last date, and undated retirements."""
 
 from common import show, snapshot
 

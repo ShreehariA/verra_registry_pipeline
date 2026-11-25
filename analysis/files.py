@@ -1,7 +1,6 @@
-"""The three files at a glance, read byte by byte: size, encoding, line endings, records and odd characters.
+"""docs/data-analysis.md, "The three files at a glance" and "File format", read byte by byte.
 
-Behind docs/data-analysis.md, "The three files at a glance" and "File format". It reads the raw bytes with
-Python's csv module on its own, so its counts are a second opinion on the pipeline's reader.
+It reads the raw bytes with Python's csv module on its own: a second opinion on the pipeline.
 """
 
 import codecs

@@ -1,7 +1,4 @@
-"""The reference numbers, worked out straight from the delivered text: totals and the 10 largest projects.
-
-Behind docs/data-analysis.md, "Reference numbers". tests/test_real_snapshot.py holds the pipeline to them.
-"""
+"""docs/data-analysis.md, "Reference numbers": the totals and the 10 largest projects, from the raw text."""
 
 from common import con, show
 

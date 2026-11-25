@@ -1,9 +1,4 @@
-"""Ingest: load one snapshot's raw files into the bronze layer, exactly as delivered.
-
-Every file is read and checked first, and bronze is only loaded into the build's in-memory
-database: nothing is written until the whole build has passed its checks (see cli.build).
-Bronze changes no value: cleaning is silver's job.
-"""
+"""Load one snapshot's raw files into bronze, in memory and exactly as delivered: cleaning is silver's job."""
 
 from __future__ import annotations
 
@@ -65,8 +60,7 @@ def ingest(con: duckdb.DuckDBPyConnection, config: Config, wanted: date | None =
 
 
 def find_snapshot(config: Config, wanted: date | None = None) -> tuple[date, dict[str, Path], list[str]]:
-    """The requested snapshot, or the newest date with a file for every source, and a note for each newer
-    date skipped for a missing file: a daily run must say it built yesterday's. Other files are ignored."""
+    """The date asked for, or else the newest date with every file, and a note for each newer date skipped."""
     if not config.landing.is_dir():
         raise PipelineError(f"the landing folder {config.landing} does not exist")
     pattern = (

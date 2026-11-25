@@ -14,8 +14,8 @@ total = retired["credits"].sum()
 unnamed = retired.loc[retired["owner_key"] == "unspecified", "credits"].sum()
 share_line(
     unnamed / total if total else 0,
-    "of retired credits name no owner: the field is blank, or a placeholder such as _ or N/A. They count in "
-    "every total, but aren't ranked.",
+    "of retired credits name no owner: blank, or a placeholder such as _ or N/A. They count in every total, "
+    "but aren't ranked.",
     blue,
     "The share of retired credits that name no owner",
 )
@@ -32,9 +32,7 @@ st.altair_chart(
     ranked_bars(owners.head(count or 10), "owner_name", "owner_credits", blue),
     alt="The named owners who retired the most credits, largest first",
 )
-st.caption(
-    "Each owner is all its spellings counted together: Interface, Inc. and INTERFACE INC are one owner."
-)
+st.caption("Spellings of one owner count together: Interface, Inc. and INTERFACE INC are one owner.")
 
 names = dict(zip(owners["owner_key"], owners["owner_name"], strict=True))
 key = st.selectbox(

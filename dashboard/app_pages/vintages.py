@@ -24,8 +24,8 @@ issued = activity["issued"].sum()
 spans = activity.loc[activity["vintage_start"] < activity["vintage_end"], "issued"].sum()
 share_line(
     spans / issued if issued else 0,
-    "of issued credits have a vintage that spans years, such as 2007 - 2008. Charts by year count them "
-    "in their first year: the files don't say how a range splits.",
+    "of issued credits have a vintage that spans years, such as 2007 - 2008. The chart counts them in "
+    "their first year.",
     INK[theme()],
     "The share of issued credits whose vintage spans more than one year",
 )

@@ -20,10 +20,7 @@ balance = data["balance"]
 issued = balance["issued"].sum()
 
 st.title("Projects")
-st.caption(
-    "Question 1: for each project, how much was issued, retired and cancelled, and how much is still "
-    "available."
-)
+st.caption("Question 1: for each project, the credits issued, retired, cancelled and still available.")
 
 largest = balance.nlargest(15, "issued")
 if len(largest) and issued:
@@ -80,7 +77,7 @@ event = st.dataframe(
 )
 
 if not event.selection.rows:
-    st.caption("Pick a row to see that project: its vintages, and who retired its credits.")
+    st.caption("Pick a row to see that project's vintages and who retired its credits.")
 else:
     project = shown.iloc[event.selection.rows[0]]
     st.subheader(plain(project.project_name))

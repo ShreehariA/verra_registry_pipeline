@@ -1,10 +1,7 @@
-# How to run it: the operating procedure
+# How to run it
 
-Step by step, for anyone: set it up, build the data, look at the answers, run it on a new snapshot, test it, deploy the cloud demo, and change it safely. Every step gives the commands, what you should see, and what to do if you don't.
+Every task, step by step: the commands, what you should see, and what to do if you don't. Run each command from the repository folder. `make` on its own lists them all.
 
-Run every command from the repository folder. `make` on its own lists them all.
-
-**Contents**
 1. [What you need](#1-what-you-need)
 2. [Set up, once](#2-set-up-once)
 3. [Build the data](#3-build-the-data)
@@ -20,26 +17,24 @@ Run every command from the repository folder. `make` on its own lists them all.
 
 ## 1. What you need
 
-| For | You need |
-|---|---|
-| Everything local | [uv](https://docs.astral.sh/uv/) and `make`. uv installs Python 3.13 and the locked packages itself. |
-| Docker (optional) | Docker, instead of uv |
-| The cloud demo (optional) | `gcloud`, `terraform` 1.15, and a Google Cloud project of your own, with billing on |
+- **To run it:** [uv](https://docs.astral.sh/uv/) and `make`. uv installs Python 3.13 and the locked packages.
+- **For Docker (optional):** Docker, instead of uv.
+- **For the cloud demo (optional):** `gcloud`, `terraform` 1.15, and a Google Cloud project with billing on.
 
 ## 2. Set up, once
 
 ```bash
-make setup                 # creates .venv with the exact package versions in uv.lock
-uv run verra --help        # check: prints "usage: verra [-h] [--config CONFIG] {build,query}"
+make setup             # install the exact package versions in uv.lock
+uv run verra --help    # should print "usage: verra [-h] [--config CONFIG] {build,query}"
 ```
 
 ## 3. Build the data
 
 ```bash
-make build                 # the one command: raw files to bronze, silver and gold, behind the quality gate
+make build
 ```
 
-It takes about a second. **You should see:**
+It takes about a second. You should see:
 
 ```
 Snapshot 2026-11-17 from data/landing
@@ -50,152 +45,138 @@ Quality gate passed: all 6 error checks are clean
 Credits: issued 198,511,826 · retired 56,564,196 · cancelled 6,123,377 · available 135,824,253
 ```
 
-**Check three things in the report:**
-1. **The date on the first line** is the snapshot you meant to build. A newer date skipped for a missing file is listed under Findings, and a `Note:` at the end means the lake holds a newer snapshot than this one ([section 5](#5-run-it-on-another-snapshot)).
-2. **"Quality gate passed".** If a check fails, the build stops with one sentence, and nothing is written ([section 12](#12-when-something-goes-wrong)).
-3. **The warnings** are facts about Verra's data. Today there are four; a new one deserves a look.
+Check three things:
+1. **The date on the first line** is the one you meant. A `Note:` at the end means the lake holds a newer day ([section 5](#5-run-it-on-another-snapshot)).
+2. **"Quality gate passed".** If a check fails, the build stops with one sentence and writes nothing.
+3. **The warnings** are facts about Verra's data. Today there are four, so a new one deserves a look.
 
-Running `make build` again gives byte-identical files. The raw files in `data/landing` are only ever read.
+Building again gives byte-identical files.
 
 ## 4. Look at the answers
 
-**The dashboard:**
-
 ```bash
-make dashboard             # then open http://localhost:8501; Ctrl+C stops it
+make dashboard    # open http://localhost:8501; Ctrl+C stops it
 ```
 
-The overview should show **198.5M credits issued**, split into 28.5% retired, 3.1% cancelled and 68.4% available. Each page has its own address (`/projects`, `/vintages`, `/retirers`, `/over_time`, `/data_quality`, `/sql`). What each page shows: [the dashboard](dashboard.md).
+The overview should show **198.5M credits issued**: 28.5% retired, 3.1% cancelled and 68.4% still available. What each page shows: [the dashboard](dashboard.md).
 
-**SQL from the terminal,** on the newest finished snapshot:
+Or ask in SQL, here or on the dashboard's SQL page:
 
 ```bash
-make query SQL="select count(*) as projects from gold.dim_project"                 # 250
+make query SQL="select count(*) as projects from gold.dim_project"     # 250
 make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"
-make query SQL="select * from gold.quality_results where not passed"               # today's 4 warnings
+make query SQL="select * from gold.quality_results where not passed"   # today's 4 warnings
 ```
 
-Or type the same SQL into the dashboard's SQL page. Which table answers what: [the data model](data-model.md).
+Which table holds what: [the data model](data-model.md).
 
 ## 5. Run it on another snapshot
 
-Verra publishes the three files every day. Each one holds the full history, so each day is built on its own.
+Each day's three files hold the full history, so each day is built on its own.
 
 ```bash
-cp ~/Downloads/Verra*_2026-11-24.csv data/landing/    # the three files, with the same names and one date
-make clean build SNAPSHOT=2026-11-24                  # an empty lake, then exactly that date
+cp ~/Downloads/Verra*_2026-11-24.csv data/landing/   # the three files for one date
+make clean build SNAPSHOT=2026-11-24                 # empty the lake, then build that date
 ```
 
-**Why name the date:** without `SNAPSHOT`, the build takes the newest date that has all three files. If yours is older than ours (2026-11-17), that would be ours.
-
-**Why `make clean` first:** every snapshot built stays in `lake/`, and the dashboard and `make query` always show the **newest** one. Built into a lake that already holds a newer date, an older snapshot would be written but not shown, and the report would end with a `Note:` saying so. Starting from an empty lake shows exactly the snapshot you built.
-
-**Other ways, for one run:**
-
-```bash
-uv run verra build --landing /path/to/files           # files from another folder
-uv run verra build --lake /tmp/verra-lake             # write somewhere else
-```
-
-**Check:** the first line of the report names the date that was built. In a daily run without `SNAPSHOT`, a newer date that's missing a file is skipped, and the report lists it under Findings with the file it lacks.
+- **`SNAPSHOT`** builds that date. Without it, the build takes the newest date that has all three files.
+- **`make clean`** matters because the dashboard shows the newest day in `lake/`. If the lake holds a newer day than the one you built, the report ends with a `Note:` saying so.
+- **For one run,** `uv run verra build --landing <folder>` reads other files, and `--lake <folder>` writes elsewhere.
 
 ## 6. Test it
 
 ```bash
-make check                                     # lint, format check, types, then all 70 tests: about 12 seconds
-uv run pytest tests/test_dashboard.py -v       # one file, with each test's name
-uv run pytest -k "gate"                        # only the tests whose names contain "gate"
+make check                                 # lint, types and all 70 tests
+uv run pytest tests/test_dashboard.py -v   # one file, each test by name
+uv run pytest -k gate                      # only tests with "gate" in their name
 ```
 
-**You should see** `70 passed`. GitHub Actions runs `make check` on every push. Two tests check the shipped 2026-11-17 snapshot. They're skipped when its files aren't in `data/landing`; the one for the analysis also when a newer snapshot is there. What each test file protects: [checks and tests](quality.md#the-tests).
+You should see `70 passed`. GitHub Actions runs the same on every push to main and every pull request. Two tests use the 2026-11-17 files, and are skipped without them. The analysis test is also skipped when `data/landing` holds a newer snapshot, because the analysis reads the newest files: then you see `69 passed, 1 skipped`. What each test file covers: [checks and tests](quality.md#the-tests).
 
-**Does a test really protect a line?** Break the line on purpose, run the tests, and put it back. For example, delete the line in `src/verra_pipeline/lake.py` that removes a day's manifest before rebuilding it, and `test_a_rebuild_hides_its_day_until_every_file_is_written` fails.
+To see that a test really protects a line, break the line on purpose and run the tests. For example, delete the line in `src/verra_pipeline/lake.py` that removes a day's manifest before rebuilding it: `test_a_rebuild_hides_its_day_until_every_file_is_written` fails. Then put it back.
 
 ## 7. Re-run the data analysis
 
-The analysis behind [the data analysis](data-analysis.md) is in `analysis/`: one script per section of that page. Each reads the newest snapshot in `data/landing`, exactly as delivered, and writes nothing.
+`analysis/` has one script per section of [the data analysis](data-analysis.md). They read the newest files in `data/landing`, as delivered, and write nothing.
 
 ```bash
-make analysis                                  # all of it, about 5 seconds
-uv run python analysis/owners.py               # one section: owners, for question 3
-```
-
-**Look inside a snapshot yourself,** even one whose build the gate refused:
-
-```bash
-uv run python -i analysis/common.py            # loads the snapshot as delivered, then waits for you
+make analysis                          # all of it, about 5 seconds
+uv run python analysis/owners.py       # one section
+uv run python -i analysis/common.py    # load the raw files, then ask your own questions:
 >>> show("Undated retirements", "SELECT _source_line, retirement_qty FROM retirements WHERE retirement_date = ''")
 ```
 
+The last one works even on files the quality gate refused.
+
 ## 8. Run it in Docker
 
-The same image builds the lake and serves the dashboard. It needs neither uv nor Python.
+One image builds the lake and serves the dashboard. You don't need uv or Python.
 
 ```bash
 docker build -t verra .
-mkdir -p lake      # yours: on Linux, a folder Docker made for the mount would belong to root
+mkdir -p lake    # make it yourself: on Linux, a folder Docker makes belongs to root
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/data/landing:/data/landing:ro" -v "$PWD/lake:/data/lake" verra \
     verra build --landing /data/landing --lake /data/lake
-docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra      # then open http://localhost:8080
+docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra    # open http://localhost:8080
 ```
 
-**Check:** the build prints the same report as `make build`, and the dashboard shows the same 198.5M. Ctrl+C stops the dashboard's container.
+The build prints the same report as `make build`.
 
 ## 9. Deploy the cloud demo
 
-What it creates, and why: [the cloud demo](deploy.md). It costs a little while it runs, so take it down when you're done.
+It costs a little while it's up, so take it down when you're done. What it creates: [the cloud demo](deploy.md).
 
 ```bash
-gcloud auth login                              # for gcloud: the image build, the upload, the job
-gcloud auth application-default login          # for Terraform
-export GCP_PROJECT=<your-project-id>           # never the gcloud default project
+gcloud auth login                        # sign in gcloud
+gcloud auth application-default login    # sign in Terraform, with the same account
+export GCP_PROJECT=<your-project-id>     # the default gcloud project is never used
 
-deploy/gcp.sh up --dry-run     # Terraform's plan: 14 resources to add, every name in your project; changes nothing
-deploy/gcp.sh up               # create or update: shows the plan again and waits for "yes"; prints the URL
-deploy/gcp.sh run              # upload data/landing/*.csv, build the lake in the cloud, print the URL
+deploy/gcp.sh up --dry-run   # show the plan (14 resources); changes nothing
+deploy/gcp.sh up             # create it, after you type yes; prints the URL
+deploy/gcp.sh run            # upload data/landing and build the lake in the cloud
 ```
 
-**Check:** open the URL. Until `run` has finished, the dashboard says nothing has been built yet. Then the overview must show the same 198.5M as locally.
+Open the URL. The overview should show the same 198.5M as on your machine. Until `run` finishes, it says nothing has been built yet.
 
-- **After a code change:** run `up` again. Only the image, the job and the dashboard change.
-- **A new snapshot:** `deploy/gcp.sh run <folder>` uploads that folder's CSV files and builds again. The bucket keeps every file uploaded, so there too the newest complete date is the one built and shown.
-- **Take it down:** `deploy/gcp.sh down`. It shows what it will delete and waits for "yes". Keep `deploy/terraform.tfstate` until then: it's Terraform's record of what it made.
+- **After a code change,** run `up` again.
+- **For a new snapshot,** `deploy/gcp.sh run <folder>` uploads that folder's files and builds again.
+- **To take it down,** `deploy/gcp.sh down`. Keep `deploy/terraform.tfstate` until then: it's Terraform's record of what it made.
 
-If a step fails, [the cloud demo's table of fixes](deploy.md#if-something-fails) lists the likely causes.
+If a step fails: [what to do](deploy.md#if-something-fails).
 
 ## 10. Change something
 
-Whatever you change, finish with `make build` (read the report), then `make check`.
+After any change, run `make build` and read the report, then `make check`.
 
-| You want to | Do this |
+| To | Do this |
 |---|---|
-| Follow a column Verra renamed | Map the new header to the old name in `pipeline.toml`: `aliases = { quantity_retired = "retirement_qty" }` under that export. The build names the missing column until you do. |
-| Change how a value is read or cleaned | Edit `sql/macros.sql` or the file in `sql/silver/`. The report's warnings and totals show the effect. |
-| Change a table or an answer | Edit its file in `sql/gold/`. The quality gate checks that every mart still adds up to the fact table. |
-| Add a quality check | Add one `UNION ALL SELECT 'warning', '<what it counts>', count(*), sum(quantity) FROM …` to `sql/checks.sql`. Use `'error'` only when a number would be wrong. Add a test to `tests/test_transform.py`. |
-| Add a dashboard page | Create `dashboard/app_pages/<name>.py`, add its `st.Page` in `dashboard/app.py`, and add the name to `PAGES` in `tests/test_dashboard.py`, so the tests open it. |
-| Accept a new reference number | When a change moves a number on purpose, update `tests/test_real_snapshot.py` and the docs that quote it (`grep -rn "<old number>" README.md docs`). |
+| Follow a column Verra renamed | Add an alias under that file in `pipeline.toml`: `aliases = { quantity_retired = "retirement_qty" }` |
+| Change how a value is cleaned | Edit `sql/macros.sql`, or the file in `sql/silver/` |
+| Change a table or an answer | Edit its file in `sql/gold/` |
+| Add a quality check | Add a line to `sql/checks.sql`, and a test to `tests/test_transform.py`. Make it an `'error'` only when a number would be wrong. |
+| Add a dashboard page | Add `dashboard/app_pages/<name>.py`, its `st.Page` in `dashboard/app.py`, and its name to `PAGES` in `tests/test_dashboard.py` |
+| Accept a new number on purpose | Update `tests/test_real_snapshot.py`, and the docs that quote it: `grep -rn "<old number>" README.md docs` |
 
 ## 11. Clean up
 
 ```bash
-make clean                 # deletes lake/, everything the pipeline made; never data/landing
-deploy/gcp.sh down         # if you deployed the cloud demo
+make clean            # delete lake/; data/landing is never touched
+deploy/gcp.sh down    # if you deployed the cloud demo
 ```
 
 ## 12. When something goes wrong
 
-Every error is one sentence, starting `error:`.
+Every error is one sentence that starts with `error:`.
 
-| What you see | Why | What to do |
-|---|---|---|
-| `make: uv: No such file or directory` | uv isn't installed | Install [uv](https://docs.astral.sh/uv/), then `make setup` |
-| `error: no date has all 3 files in …/data/landing (…)` | A file is missing, or named differently | The three files need the same date: `VerraIssuances_<date>.csv`, `VerraRetirements_<date>.csv`, `VerraCancelled_<date>.csv` |
-| `error: no files dated 2026-11-30 in …` | `--snapshot` asked for a date that isn't there | Pick a date that is in `data/landing` |
-| `error: VerraIssuances_….csv: required columns are missing: units (it has …)` | Verra renamed or dropped a column | Find the new name in the list after "it has", and add an alias ([section 10](#10-change-something)) |
-| `error: VerraRetirements_….csv: … lines (…%) could not be read; at most 1% is allowed` | The file is broken, for example by an unclosed quote | Get a fresh copy of the file. Raise `max_rejected_share` in `pipeline.toml` only if you know why the lines are broken. |
-| `error: the quality gate failed, so nothing was written: <check>: <rows>` | A number would be wrong, so the snapshot wasn't published | The lake still holds the last good build. Find the rows with `uv run python -i analysis/common.py` ([section 7](#7-re-run-the-data-analysis)), fix the input or the rule, and build again |
-| The dashboard says "nothing has been built in …/lake yet" | No build has finished | `make build` |
-| The dashboard shows a different date from the one you built, and the report ended with a `Note:` | The lake holds a newer snapshot, and readers show the newest | `make clean build SNAPSHOT=<your date>` ([section 5](#5-run-it-on-another-snapshot)) |
-| The dashboard isn't at http://localhost:8501, and the log says `Uvicorn server started on :::8502` | Another dashboard is still running on 8501, so this one took the next port | Open the port in that line, or stop the other dashboard first |
-| `make check` stops at `ruff format --check` | A file isn't formatted | `uv run ruff format .`, then `make check` again |
+| You see | What to do |
+|---|---|
+| `make: uv: No such file or directory` | Install [uv](https://docs.astral.sh/uv/), then `make setup` |
+| `error: no date has all 3 files in …` | Give the three files the same date: `VerraIssuances_<date>.csv`, `VerraRetirements_<date>.csv`, `VerraCancelled_<date>.csv` |
+| `error: no files dated 2026-11-30 in …` | `SNAPSHOT` names a date that isn't in `data/landing` |
+| `error: …: required columns are missing: units (it has …)` | Verra renamed a column. Find its new name after "it has", and add an alias ([section 10](#10-change-something)). |
+| `error: …: … lines (…%) could not be read; at most 1% is allowed` | The file is broken. Get a fresh copy. |
+| `error: the quality gate failed, so nothing was written: …` | A number would be wrong, and the lake keeps the last good build. Look at the rows with `uv run python -i analysis/common.py` ([section 7](#7-re-run-the-data-analysis)). |
+| The dashboard says "nothing has been built … yet" | Run `make build` |
+| The dashboard shows another date, and the build ended with `Note:` | `make clean build SNAPSHOT=<your date>` |
+| The dashboard isn't on port 8501, and its log names port 8502 | Another dashboard is using 8501. Open 8502, or stop the other one. |
+| `make check` stops at `ruff format --check` | Run `uv run ruff format .`, then `make check` again |

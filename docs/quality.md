@@ -1,29 +1,31 @@
-# Checks and tests: how we know the numbers are right
+# Checks and tests
 
-The brief says that the numbers being right matters most. Five things show that they are:
+The brief says the numbers being right matters most. This page shows how we know they are.
 
-1. **Nothing is lost on the way in.** For every file, the records read equal the records loaded plus the ones quarantined, and every bronze row carries its file, line and checksum.
-2. **Every layer adds up.** Silver has one row per bronze row, the fact table has the same rows and credits as silver, and every mart adds up to the fact table. If any of these fails, nothing is written.
+## Why the numbers can be trusted
+
+1. **Nothing is lost on the way in.** For every file, the records read equal the records loaded plus the ones quarantined. Every bronze row keeps its file, line and checksum.
+2. **Every layer adds up.** Silver has one row per bronze row, the fact table matches silver, and every mart adds up to the fact table.
 3. **Every retired credit traces back to an issuance.** Each retirement and cancellation lies inside one issued batch, and no credit is used twice.
-4. **An independent check.** The reference numbers were first worked out by the data analysis, with its own SQL, before the cleaning and the model were written ([the data analysis](data-analysis.md)). A test holds the pipeline to them. Only the file reader is shared, and `analysis/files.py` re-reads the raw bytes to check it.
-5. **The same input gives the same bytes,** on macOS and in a Linux container.
+4. **The numbers were worked out twice.** The [data analysis](data-analysis.md) found them first, with its own SQL, and a test holds the pipeline to them. They share only the file reader, which `analysis/files.py` checks byte by byte.
+5. **The same input gives the same bytes,** on macOS and on Linux.
 
 ## The quality gate
 
-`sql/checks.sql` runs on the finished tables, before anything is written. Each check counts the rows, and the credits, that break its rule; zero passes. The results are kept in `gold.quality_results`, printed by the build and shown on the dashboard.
+`sql/checks.sql` runs on the finished tables, before anything is written. Each check counts the rows and credits that break its rule, and zero means it passed. The results go to `gold.quality_results`, the build's report and the dashboard.
 
-**6 errors.** Each one means a number would be wrong, so a failure stops the build and nothing is written:
+**6 errors** stop the build, because a number would be wrong:
 
-| Check | What it guards against |
+| Check | Guards against |
 |---|---|
 | silver has exactly one row per bronze row | a record lost or doubled while cleaning |
-| every quantity is a whole number above zero | a total built on a missing, negative or decimal quantity: `12.5` stops the build, it isn't rounded to 13 |
+| every quantity is a whole number above zero | a total built on a bad quantity: `12.5` stops the build instead of becoming 13 |
 | every row has a project id | credits that belong to no project |
 | no serial number appears twice in one export | the same credits counted twice |
 | the fact table has the same rows and credits as silver | rows lost or doubled while modelling |
-| the marts add up to the fact table | a mart that disagrees with the facts. The marts join the dimensions, so this also proves no event points at a missing project or owner |
+| the marts add up to the fact table | a mart that disagrees with the facts, or an event pointing at a missing project or owner |
 
-**13 warnings.** These are facts about Verra's data. The totals still add up what Verra published, so the build goes on, and the report and the dashboard say what was found:
+**13 warnings** are facts about Verra's data. The build goes on, and says what it found:
 
 | Check | Today |
 |---|---|
@@ -41,48 +43,46 @@ The brief says that the numbers being right matters most. Five things show that 
 | projects with retirements or cancellations but no issuance | 0 |
 | retired credits with no named owner | 7,390 rows, 39,846,198 credits |
 
-Why two of them are warnings, not errors:
-- **Undated retirements** are real retirements, and Verra flags them itself. Leaving them out would understate retired credits by 209,992. They're missing only from charts over time, and the chart says so.
-- **Credits retired before their batch was issued** all come from the older registries, whose credits were recorded again when they moved to Verra. An error would block every day's data over a fact about history.
+Two of them look like errors, but aren't:
+- **Undated retirements** are real, and Verra flags them itself. Leaving them out would understate retired credits by 209,992.
+- **Credits retired before their batch was issued** all come from older registries, whose credits were recorded again when they moved to Verra.
 
-To see the gate's result: `make query SQL="select * from gold.quality_results where not passed"`.
+See today's result: `make query SQL="select * from gold.quality_results where not passed"`.
 
-## The integrity rules, and what proves each
+## The integrity rules, and the test for each
 
-| Rule | How it's kept | The test that proves it |
-|---|---|---|
-| Raw files are only read, and their checksums are recorded | each file is read once, as bytes; its SHA-256 goes into the manifest and onto every bronze row | `test_keeps_values_as_delivered_and_where_each_row_came_from` |
-| Only a complete snapshot is loaded | the newest date with all three files | `test_picks_the_newest_complete_snapshot_and_ignores_other_files`; `[missing file]` |
-| Parsing survives a byte-order mark, Windows line endings, line breaks inside fields, Windows-1252 and a cut-off last line | the `csv` module, and decoding that reports what it found | `test_loads_every_file_and_reports_its_quirks`, `test_reads_windows_1252_when_a_file_is_not_utf8` |
-| Unreadable records go to quarantine, with the reason and exact text, inside a budget counted in lines | `bronze.rejected_records`; `max_rejected_share` | `test_quarantines_the_cut_off_record_with_its_exact_text`; `[one broken quote swallowing the rest]` |
-| Headers are matched by name, and a missing required column stops the run | normalised names, aliases in `pipeline.toml` | `test_matches_headers_by_name_in_any_order_and_through_aliases`; `[missing required column]` |
-| Every check runs before anything is written, and files are written atomically | one in-memory build; a temporary name, then a rename; the manifest last | `test_a_failed_error_check_stops_the_build_before_anything_is_written`, `test_a_rebuild_hides_its_day_until_every_file_is_written` |
-| Every bronze row carries its lineage | `_snapshot_date`, `_source_file`, `_source_line`, `_file_sha256` | `test_keeps_values_as_delivered_and_where_each_row_came_from` |
-| The same input gives byte-identical output | one thread, sorted output, no timestamps, pinned versions | `test_a_rebuild_gives_byte_identical_files` |
-| Totals reconcile from bronze to silver to gold, and gold is published only when the gate passes | `sql/checks.sql` | `test_gold_adds_up_and_the_gate_reports_what_it_saw`, `test_the_shipped_snapshot_gives_the_reference_numbers` |
-| Errors are one clear sentence | one error class, `PipelineError`; a broken SQL file is named | `test_an_error_is_one_clear_line`, `test_a_bad_config_is_one_clear_line`, `test_a_broken_sql_file_is_named_in_one_line` |
+| Rule | The test that proves it |
+|---|---|
+| Raw files are only read, and their checksums are recorded | `test_keeps_values_as_delivered_and_where_each_row_came_from` |
+| Only a complete snapshot is loaded | `test_picks_the_newest_complete_snapshot_and_ignores_other_files`, `[missing file]` |
+| Parsing survives a byte-order mark, Windows line endings, line breaks inside fields, Windows-1252 and a cut-off last line | `test_loads_every_file_and_reports_its_quirks`, `test_reads_windows_1252_when_a_file_is_not_utf8` |
+| Unreadable records go to quarantine, inside a budget counted in lines | `test_quarantines_the_cut_off_record_with_its_exact_text`, `[one broken quote swallowing the rest]` |
+| Headers are matched by name, and a missing required column stops the run | `test_matches_headers_by_name_in_any_order_and_through_aliases`, `[missing required column]` |
+| Every check runs before anything is written, and files are written atomically | `test_a_failed_error_check_stops_the_build_before_anything_is_written`, `test_a_rebuild_hides_its_day_until_every_file_is_written` |
+| Every bronze row carries its lineage | `test_keeps_values_as_delivered_and_where_each_row_came_from` |
+| The same input gives byte-identical output | `test_a_rebuild_gives_byte_identical_files` |
+| Totals reconcile, and gold is published only when the gate passes | `test_gold_adds_up_and_the_gate_reports_what_it_saw`, `test_the_shipped_snapshot_gives_the_reference_numbers` |
+| Errors are one clear sentence | `test_an_error_is_one_clear_line`, `test_a_bad_config_is_one_clear_line`, `test_a_broken_sql_file_is_named_in_one_line` |
 
-The names in brackets are cases of `test_refuses_input_it_cannot_trust_and_writes_nothing`, which feeds six kinds of broken input and checks that each is refused with nothing written.
+The names in brackets are cases of `test_refuses_input_it_cannot_trust_and_writes_nothing`. It feeds in six kinds of broken input, and checks that each is refused with nothing written.
 
 ## The tests
 
-`make check` runs lint, type checks and the 70 tests. GitHub Actions runs it on every push, and also checks the cloud demo's Terraform.
+`make check` runs the linters, the type checker and 70 tests. GitHub Actions runs the same on every push to main and every pull request, and checks the Terraform too. It deploys nothing.
 
 ```bash
-make check                                   # everything, as GitHub Actions runs it
-uv run pytest tests/test_transform.py -v     # one file, each test by name
-uv run pytest -k rebuild                     # only the tests whose names contain "rebuild"
+make check                                 # everything, as CI runs it
+uv run pytest tests/test_transform.py -v   # one file, each test by name
+uv run pytest -k rebuild                   # only tests with "rebuild" in their name
 ```
 
-| File | Tests | What they cover |
+| File | Tests | Covers |
 |---|---|---|
-| `tests/test_ingest.py` | 14 | The real files' quirks, on tiny fixture files dated 2030-01-15; headers by name and alias; six kinds of broken input refused with nothing written |
-| `tests/test_cli.py` | 5 | The build's report, querying the newest finished snapshot, and one-line errors |
-| `tests/test_transform.py` | 19 | Each macro on the formats the files use; owner keys, including a Chinese name and placeholders; the repair of mis-encoded text; totals; the gate failing and writing nothing; the batch checks firing; byte-identical rebuilds; a rebuilt day hidden until it's whole |
-| `tests/test_real_snapshot.py` | 2 | Every number in the README's answers, on the shipped snapshot, plus two cleaning rules only real data exercises: the repair of mis-encoded owner names, and each project's most common country. And the scripts in `analysis/` still print the key numbers the docs quote |
-| `tests/test_dashboard.py` | 26 | The overview's figures equal the model's totals; every page renders, even with no dates or owners; a picked project and a picked table open, and a project's caption leaves out details the snapshot lacks; Over time counts every undated event; an empty lake says what to do; a project is found by name, country or ID; the SQL page runs queries, cuts long results, shows errors, keeps its query when another tab opens, and finds tables by their columns; owner names can't become Markdown; and SQL typed by anyone can't read or write a file, undo its settings, run past its time, or spill to disk |
-| `tests/test_deploy.py` | 4 | The deploy script's dry runs change nothing (`up` and `down` only ask Terraform for its plan), every command names the project, and it refuses to start without one |
+| `test_ingest.py` | 14 | The real files' quirks, on tiny sample files; headers by name and alias; six kinds of broken input |
+| `test_cli.py` | 5 | The build's report, `verra query`, and one-line errors |
+| `test_transform.py` | 19 | Every macro and owner key; repairing mis-encoded names; totals; a failed gate writing nothing; the batch checks; byte-identical rebuilds |
+| `test_real_snapshot.py` | 2 | Every number in the README's answers, on the real files; the analysis scripts still print the numbers the docs quote |
+| `test_dashboard.py` | 26 | Every page renders, even with no dates or owners; the figures match the model; search, picking a row, and the SQL page; SQL typed by anyone can't touch a file or run forever |
+| `test_deploy.py` | 4 | The deploy script's dry runs change nothing, and every command names the project |
 
-**Do the tests catch real mistakes?** The risky lines were mutation-checked: broken on purpose, one at a time, to confirm that a test fails. For example, deleting the line that hides a day during its rebuild makes `test_a_rebuild_hides_its_day_until_every_file_is_written` fail, and reading quantities with a plain cast again makes a test fail.
-
-**Is the build the same everywhere?** Built in the Docker image on Linux, the 15 lake files are identical to the ones built on macOS.
+**Do the tests catch real mistakes?** The risky lines were broken on purpose, one at a time, to confirm that a test fails. For example, deleting the line that hides a day while it's rebuilt makes `test_a_rebuild_hides_its_day_until_every_file_is_written` fail.

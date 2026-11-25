@@ -1,10 +1,5 @@
-# One image for both halves of the cloud demo: the pipeline job and the dashboard. No data is baked in;
-# both read a mounted folder (a Cloud Storage bucket on Google Cloud). Locally:
-#   docker build -t verra .
-#   mkdir -p lake      # yours: on Linux, a folder Docker made for the mount would belong to root
-#   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/data/landing:/data/landing:ro" -v "$PWD/lake:/data/lake" verra \
-#       verra build --landing /data/landing --lake /data/lake
-#   docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra        # then open http://localhost:8080
+# One image for the pipeline job and the dashboard. No data inside: both read a mounted folder.
+# How to run it: docs/sop.md, section 8.
 FROM python:3.13-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /bin/uv

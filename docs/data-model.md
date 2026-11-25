@@ -1,58 +1,52 @@
 # The data model
 
-[The README](../README.md#the-data-model) shows the star schema, and each table's grain, key and relations. This page explains how each value is made, from the text Verra delivers to the three answers.
+[The README](../README.md#the-data-model) shows the tables, their keys and how they relate. This page shows how each value is made.
 
-## Silver: every value read, nothing dropped
+## Silver: every value read, no row dropped
 
-Silver has one table per export, with one row per bronze row. It reads only the columns that `pipeline.toml` lists. A value that can't be read becomes NULL, and the quality gate counts every kind of NULL, so nothing unreadable passes silently.
+Silver has one table per file, and one row per bronze row. A value that can't be read becomes NULL, and the quality gate counts it.
 
 The reading rules are small SQL functions (macros) in `sql/macros.sql`:
 
 | Macro | Reads | Gives |
 |---|---|---|
-| `whole_number` | quantities and project IDs | digits only, else NULL. A plain cast isn't enough: it reads `12.5` as 13 and `1e3` as 1000 without a word |
-| `parse_date` | `19 Mar 2009`, `01-Apr-09` (00–68 is 2000–2068) or `2009-03-19` | a date, else NULL |
-| `vintage_start`, `vintage_end` | `2013`, or a range such as `2007 - 2008` | the first year and the last year |
-| `serial_part` | the start of a serial number: `10026-172542403-172547402-…` | the batch number, the first serial and the last serial |
-| `clean_text` | every text column: names, places, vintages, owners | trimmed, every run of spaces, tabs and no-break spaces made one space; blank becomes NULL |
-| `owner_key` | owner names | one key per owner, whatever the spelling (below) |
+| `whole_number` | quantities and project IDs | the number if it's only digits, else NULL. A plain cast would quietly read `12.5` as 13. |
+| `parse_date` | `19 Mar 2009`, `01-Apr-09` or `2009-03-19` | a date, else NULL |
+| `vintage_start`, `vintage_end` | `2013`, or a range such as `2007 - 2008` | the first and the last year |
+| `serial_part` | a serial number: `10026-172542403-172547402-…` | the batch number, the first serial and the last |
+| `clean_text` | every text column | trimmed, with runs of spaces made one. Blank becomes NULL. |
+| `owner_key` | owner names | one key per owner, whatever the spelling |
 
-One rule runs in Python, because DuckDB can't re-encode text: `transform.repair` mends owner names that were mis-encoded before Verra exported them (`StÃ¤dtische` becomes `Städtische`). It keeps the original whenever the repair fails, so genuine text is never changed.
-
-Each silver table has the project's details (name, scope, methodology, region, country, state), the vintage and its two years, the serial number with `batch_id`, `serial_first` and `serial_last`, the date, the quantity, and the lineage columns `_source_file` and `_source_line`. Retirements also have the owner's name and `owner_key`.
+One rule is Python, because DuckDB can't re-encode text: `transform.repair` mends owner names that were mis-encoded before Verra exported them (`StÃ¤dtische` becomes `Städtische`). If a repair fails, the name stays as it was.
 
 ## Owner keys
 
-`owner_key` makes one owner of many spellings:
-1. lower case, with accents removed;
-2. anything but a letter or a digit becomes a space. Letters of every alphabet count, so a Chinese company name survives;
+`owner_key` turns many spellings into one owner:
+1. lower case, without accents;
+2. anything but a letter or a digit becomes a space. Letters of every alphabet count, so Chinese names survive;
 3. blanks and placeholders (`_`, `-`, `N/A`, `None`, `Other`, `Unknown`) become `unspecified`;
-4. a legal form at the end is dropped (Inc, Ltd, GmbH, S.A., Corp and others), then the spaces.
+4. a legal form at the end (Inc, Ltd, GmbH, S.A., Corp and others) is dropped.
 
-So `Interface, Inc.`, `Interface Inc` and `INTERFACE` are all `interface`. Names that differ by more stay apart, on purpose: a fuzzy match is hard to explain, and it can merge two different companies.
+So `Interface, Inc.`, `Interface Inc` and `INTERFACE` are all `interface`. Names that differ more stay apart on purpose: fuzzy matching is hard to explain, and it can merge two different companies.
 
 ## Gold: the star
 
-**`fct_credit_event`** stacks the three silver tables: one row per issuance, retirement or cancellation, keyed by `event_type` and `serial_number`. Every credit total is a sum of `quantity`. A retirement or cancellation has the same `batch_id` and `project_id` as the issuance its credits came from, and its serial range lies inside that issuance's range. `owner_key` is set on retirements only.
+- **`fct_credit_event`:** the three silver tables stacked, one row per event. A retirement or cancellation has the same `batch_id` and `project_id` as the issuance its credits came from, and its serials lie inside that issuance's range.
+- **`dim_project`:** every project. Methodology and country can change between batches, so each project takes its most common details. Ties go to the first alphabetically, so a rebuild picks the same.
+- **`dim_beneficial_owner`:** one row per `owner_key`. `owner_name` is the spelling with the most credits, and `spellings` lists every spelling merged, so you can check the merge.
 
-**`dim_project`** holds every project found in any export. Name, scope, region and state are the same on every row of a project. Methodology and country can change from batch to batch, so each project takes its most common combination of details; ties go to the alphabetically first, so a rebuild picks the same one.
+## Gold: one table per question
 
-**`dim_beneficial_owner`** has one row per `owner_key`. `owner_name` is the spelling with the most credits, and `spellings` lists every spelling merged, so a reader can check the merge. `unspecified` holds the blank and placeholder owners.
-
-## Gold: one mart per question
-
-| Mart | One row per | How it's made |
+| Table | One row per | Holds |
 |---|---|---|
-| `mart_project_balance` (Q1) | project | `issued`, `retired` and `cancelled` are sums of `quantity` by event type; `available` = issued − retired − cancelled. With the project's name, country and scope. |
-| `mart_vintage_activity` (Q2) | vintage, as Verra writes it | The same sums per vintage, with `vintage_start`, `vintage_end` and the number of projects. A chart by year counts a range in its first year, and says so. |
-| `mart_top_retirers` (Q3) | owner and project | Credits, retirements, vintages and first and last dates for each owner and project. `owner_rank` ranks the named owners by everything they retired. `unspecified` has no rank, but stays in the totals. |
-| `quality_results` | quality check | What the gate measured on this snapshot: failing rows and credits, and whether the check passed. |
+| `mart_project_balance` | project | issued, retired, cancelled, and available = issued − retired − cancelled |
+| `mart_vintage_activity` | vintage | the same sums per vintage, with its first and last year |
+| `mart_top_retirers` | owner and project | credits, vintages and dates. `owner_rank` ranks the named owners; `unspecified` has no rank, but stays in the totals. |
+| `quality_results` | quality check | what the gate measured, and whether the check passed |
 
-The quality gate checks that every mart adds up to the fact table, and the marts join both dimensions. So no event can point at a missing project or owner without the build stopping.
+The marts join both dimensions, and the gate checks that they add up to the fact table. So an event pointing at a missing project or owner stops the build.
 
-## Example queries
-
-After `make build`, run them with `make query`, or paste the SQL into the dashboard's SQL page:
+## Try it
 
 ```bash
 make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"

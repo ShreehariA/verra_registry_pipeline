@@ -1,7 +1,4 @@
-"""Every column of every file: how many values are blank, how many are distinct, and the most common ones.
-
-Behind docs/data-analysis.md, "How the files were read": the second pass, over the values.
-"""
+"""Every column of every file: how many values are blank, how many are distinct, and the most common ones."""
 
 from common import con
 

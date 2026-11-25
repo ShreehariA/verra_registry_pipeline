@@ -8,10 +8,7 @@ lake, manifest, data = snapshot()
 checks, rejected = data["checks"], data["rejected"]
 
 st.title("Data quality")
-st.caption(
-    "How far the numbers can be trusted: the quality gate's checks on this snapshot, the records that "
-    "couldn't be read, and what each file looked like."
-)
+st.caption("How far the numbers can be trusted: the quality checks, the unreadable records, and the files.")
 
 errors = checks[checks["severity"] == "error"]
 warnings = checks[(checks["severity"] == "warning") & ~checks["passed"]]
@@ -24,8 +21,8 @@ with st.container(horizontal=True):
     else:
         st.badge("No warnings", icon=":material/check_circle:", color="green")
 st.caption(
-    "A failed error check stops the build, because a number would be wrong: this snapshot was published, so "
-    "every one passed. A warning is a fact about Verra's data worth knowing, and the build goes on."
+    "An error check stops the build when it fails, so this snapshot passed them all. A warning only "
+    "reports a fact about Verra's data."
 )
 
 status = (

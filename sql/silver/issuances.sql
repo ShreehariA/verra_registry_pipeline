@@ -1,5 +1,4 @@
--- One row per issued batch, exactly one per bronze row. Values are typed and trimmed; a value that can't be read
--- becomes NULL and is counted by checks.sql, never dropped. Lineage: the raw file and the line the row starts on.
+-- One row per bronze row. A value that can't be read becomes NULL, which checks.sql counts: no row is dropped.
 SELECT
     whole_number(project_id) AS project_id,
     clean_text(project_name) AS project_name,

@@ -1,7 +1,4 @@
-"""Projects and places: do the files agree on projects, and can the project details and places be trusted?
-
-Behind docs/data-analysis.md, "Projects and places".
-"""
+"""docs/data-analysis.md, "Projects and places": do the files agree, and can the places be trusted?"""
 
 from common import con, show
 

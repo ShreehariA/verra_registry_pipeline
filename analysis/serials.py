@@ -1,9 +1,4 @@
-"""Serial numbers and batches: what a serial number holds, and how each retirement and cancellation
-traces back to the batch it was issued in.
-
-Behind docs/data-analysis.md, "Serial numbers and batches", and the retirements dated before their batch was
-issued ("Dates").
-"""
+"""docs/data-analysis.md, "Serial numbers and batches": how each retired credit traces back to its batch."""
 
 from common import con, show
 

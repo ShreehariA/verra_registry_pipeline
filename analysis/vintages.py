@@ -1,8 +1,4 @@
-"""Vintages: a single year or a range, how many credits are issued in ranges, and how the vintage matches the
-monitoring period written at the end of each serial number.
-
-Behind docs/data-analysis.md, "Vintages".
-"""
+"""docs/data-analysis.md, "Vintages": single years and ranges, and the vintage against the serial number."""
 
 from common import con, show
 

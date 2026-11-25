@@ -1,9 +1,4 @@
-"""The dashboard: the brief's three questions, how far the numbers can be trusted, and SQL on every table.
-
-Run it with `make dashboard`. It shows the newest finished snapshot in the lake of pipeline.toml, or in
-$VERRA_LAKE when that is set (the cloud demo mounts the bucket there). Each page has its own address, and
-what the pages share is in common.py.
-"""
+"""The dashboard, on the newest build in the lake of pipeline.toml, or in $VERRA_LAKE when that is set."""
 
 from pathlib import Path
 
@@ -13,7 +8,7 @@ from common import lake_path
 from verra_pipeline import PipelineError
 from verra_pipeline.lake import newest_manifest
 
-# A local tab icon: a Material icon there, or each page's own, is fetched from Google on every page load
+# a local tab icon: a Material icon, here or on a page, is fetched from Google on every page load
 ICON = Path(__file__).parent / "static" / "favicon.png"
 st.set_page_config(page_title="Verra registry", page_icon=str(ICON), layout="wide")
 try:
@@ -29,45 +24,43 @@ st.navigation(
             title="Overview",
             icon=":material/home:",
             default=True,
-            help="Every credit Verra has issued and what happened to it, then the three answers.",
+            help="Every credit issued, and what happened to it.",
         ),
         st.Page(
             "app_pages/projects.py",
             title="Projects",
             icon=":material/forest:",
-            help="Question 1: issued, retired, cancelled and available for every project. Find one to see "
-            "its vintages and who retired its credits.",
+            help="Question 1: each project's credits issued, retired, cancelled and available.",
         ),
         st.Page(
             "app_pages/vintages.py",
             title="Vintages",
             icon=":material/calendar_month:",
-            help="Question 2: credit activity by vintage, in credits or as a share of what was issued.",
+            help="Question 2: credit activity by vintage.",
         ),
         st.Page(
             "app_pages/retirers.py",
             title="Retirers",
             icon=":material/corporate_fare:",
-            help="Question 3: who retires the most, and what. Pick an owner to see the projects behind them.",
+            help="Question 3: who retires the most, and what.",
         ),
         st.Page(
             "app_pages/over_time.py",
             title="Over time",
             icon=":material/timeline:",
-            help="Credits issued, retired and cancelled per year, or as running totals.",
+            help="Credits issued, retired and cancelled per year.",
         ),
         st.Page(
             "app_pages/data_quality.py",
             title="Data quality",
             icon=":material/fact_check:",
-            help="The quality gate's checks, the records that couldn't be read, and the files.",
+            help="The quality checks, and the records that couldn't be read.",
         ),
         st.Page(
             "app_pages/sql.py",
             title="SQL",
             icon=":material/database:",
-            help="Any query on any table, raw rows included, read-only. Browse the tables, see their columns "
-            "and profile, and keep a history of your queries.",
+            help="Query any table, read-only.",
         ),
     ],
     position="top",

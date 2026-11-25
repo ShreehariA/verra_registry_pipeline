@@ -1,9 +1,6 @@
-"""Transform: build silver and gold from bronze with the SQL in sql/, then run the quality gate.
+"""Build silver and gold from bronze with the SQL in sql/, then run the quality gate.
 
-It works inside the build's in-memory database, after ingest and before anything is written. It runs
-macros.sql, then each file in silver/ and gold/ in name order (one SELECT per file, which becomes the
-table of the same name), then checks.sql. If an error check fails, the build stops and the lake stays
-exactly as it was.
+Each file in silver/ and gold/ is one SELECT, which becomes the table of the same name.
 """
 
 from __future__ import annotations
@@ -51,9 +48,9 @@ def describe(check: dict[str, Any]) -> str:
 
 
 def repair(text: str) -> str:
-    """Undo UTF-8 that was read as Windows-1252 before Verra exported it: 'StÃ¤dtische' is 'Städtische'.
+    """Undo UTF-8 read as Windows-1252 before Verra exported it: 'StÃ¤dtische' is 'Städtische'.
 
-    Text that was never mis-encoded fails the round trip ('SÃO PAULO' is real Portuguese) and stays as it is.
+    Real text fails the round trip ('SÃO PAULO' is Portuguese), so it stays as it is.
     """
     try:
         return text.encode("cp1252").decode("utf-8")

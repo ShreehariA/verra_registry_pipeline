@@ -1,6 +1,5 @@
--- Question 2: credits issued, retired and cancelled per vintage, as Verra writes it: '2013' or a range,
--- '2007 - 2008'. The files don't say how a range's credits split across its years, so a chart by year counts a
--- range in vintage_start and says so.
+-- Question 2: credits per vintage, as Verra writes it: '2013' or '2007 - 2008'. The files don't say how a range
+-- splits across its years, so a chart by year counts it in vintage_start, and says so.
 WITH totals AS (
     SELECT
         vintage, vintage_start, vintage_end,

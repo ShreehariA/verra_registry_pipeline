@@ -1,6 +1,4 @@
-"""The SQL workspace, after DBeaver: a navigator of every table, an editor with examples and a history,
-each table's columns, profile and rows, and the star schema. Every query runs on its own locked-down copy
-(common.run_sql)."""
+"""The SQL page, after DBeaver: a table navigator, an editor with examples and a history, and the schema."""
 
 import re
 
@@ -79,9 +77,8 @@ st.session_state.sql_link = link
 
 st.title("SQL")
 st.caption(
-    "Every table, read-only. Bronze holds each record exactly as delivered, with its file and line; "
-    "silver, the cleaned exports; gold, the model and the answers. A query can read nothing but these "
-    f"tables, runs for at most {SECONDS} seconds, and shows at most {MAX_ROWS:,} rows."
+    "Every table, read-only: bronze holds the raw records, silver the cleaned ones, gold the model and "
+    f"the answers. A query runs for at most {SECONDS} seconds and shows up to {MAX_ROWS:,} rows."
 )
 
 navigator, workspace = st.columns([1.3, 3], gap="large")
@@ -198,8 +195,7 @@ with workspace:
     if diagram_tab.open:
         with diagram_tab:
             st.caption(
-                "The star schema in gold: one fact table of every event, and its two dimensions. "
-                "The marts are built from it."
+                "The star schema in gold: one table of every event, and the projects and owners it points to."
             )
             st.mermaid_chart(
                 er_diagram(), alt="The gold star schema: credit events, projects and beneficial owners"

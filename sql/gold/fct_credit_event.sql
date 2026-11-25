@@ -1,6 +1,5 @@
--- The fact table: one row per issuance, retirement or cancellation, keyed by event_type and serial_number. Every
--- credit total is a sum of quantity. A retirement or cancellation has the same batch_id and project_id as the
--- issuance its credits came from, and its serial range lies inside that issuance's range.
+-- One row per issuance, retirement or cancellation, keyed by event_type and serial_number. A retirement or
+-- cancellation shares batch_id and project_id with the issuance its credits came from.
 SELECT
     'issuance' AS event_type, serial_number, batch_id, serial_first, serial_last, project_id,
     NULL::VARCHAR AS owner_key, issuance_date AS event_date, vintage, vintage_start, vintage_end, quantity,

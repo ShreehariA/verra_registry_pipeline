@@ -1,7 +1,4 @@
-"""Reasons and multi-value fields: why credits were retired or cancelled; fields holding several values.
-
-Behind docs/data-analysis.md, "Reasons and multi-value fields".
-"""
+"""docs/data-analysis.md, "Reasons and multi-value fields": why credits were retired or cancelled."""
 
 from common import show
 

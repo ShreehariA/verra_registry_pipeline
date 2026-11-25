@@ -1,6 +1,5 @@
--- The quality gate: one row per check. failing_rows counts the rows that break the rule and failing_credits the
--- credits involved; zero passes. A failed 'error' means a number would be wrong, so the build stops before anything
--- is written. A 'warning' is a fact about the data worth knowing: the build report and the dashboard show it.
+-- The quality gate: one row per check, with the rows and credits that break its rule; zero passes.
+-- A failed 'error' means a number would be wrong, so nothing is written. A 'warning' is only reported.
 WITH events AS (
     SELECT * FROM gold.fct_credit_event
 ),

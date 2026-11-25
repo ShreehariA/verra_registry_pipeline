@@ -1,4 +1,4 @@
--- One row per cancellation, exactly one per bronze row. Its dates come as '01-Apr-09'; parse_date reads both formats.
+-- One row per bronze row. Cancellation dates come as '01-Apr-09', which parse_date reads.
 SELECT
     whole_number(project_id) AS project_id,
     clean_text(project_name) AS project_name,

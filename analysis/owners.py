@@ -1,8 +1,6 @@
-"""Owners, for question 3: blanks and placeholders, many spellings of one owner, mis-encoded names, and how
-much each cleaning step changes the ranking.
+"""docs/data-analysis.md, "Owners (question 3)": blanks, spellings, mis-encoded names, and the ranking.
 
-Behind docs/data-analysis.md, "Owners (question 3)" and "The 10 largest retirers". The owner key here is
-the analysis's own, written before the pipeline existed; tests/test_real_snapshot.py holds the pipeline to it.
+The owner key here is the analysis's own, written before the pipeline's; a test holds the pipeline to it.
 """
 
 import pyarrow as pa

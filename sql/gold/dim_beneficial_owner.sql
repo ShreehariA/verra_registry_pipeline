@@ -1,6 +1,5 @@
--- One row per beneficial owner: every spelling with the same owner_key is one owner. The name shown is the spelling
--- with the most credits, and `spellings` lists them all so a reader can check the merge. 'unspecified' holds the
--- retirements with a blank or placeholder owner.
+-- One row per owner_key. The name shown is the spelling with the most credits, and spellings lists every one,
+-- so the merge can be checked. 'unspecified' holds the blank and placeholder owners.
 WITH spelled AS (
     SELECT owner_key, beneficial_owner, sum(quantity) AS credits
     FROM silver.retirements

@@ -1,5 +1,4 @@
--- Small functions that silver and gold share. Each turns delivered text into a value, or NULL when the text
--- can't be read; checks.sql counts the NULLs, so nothing unreadable passes silently.
+-- Each macro turns delivered text into a value, or NULL when it can't be read; checks.sql counts the NULLs.
 
 -- '19 Mar 2009' (issuances, retirements) or '01-Apr-09' (cancellations; 00-68 is 2000-2068); ISO as a fallback.
 CREATE MACRO parse_date(text) AS try_strptime(trim(text), ['%d %b %Y', '%d-%b-%y', '%Y-%m-%d'])::DATE;
@@ -8,8 +7,7 @@ CREATE MACRO parse_date(text) AS try_strptime(trim(text), ['%d %b %Y', '%d-%b-%y
 CREATE MACRO vintage_start(vintage) AS try_cast(regexp_extract(vintage, '^\s*(\d{4})', 1) AS INTEGER);
 CREATE MACRO vintage_end(vintage) AS try_cast(regexp_extract(vintage, '(\d{4})\s*$', 1) AS INTEGER);
 
--- A serial number starts with the batch number and the range's first and last serial:
--- '10026-172542403-172547402-VCS-VCU-263-…'. Part 1 is the batch, 2 the first serial, 3 the last.
+-- A serial number starts with the batch, the first serial and the last: '10026-172542403-172547402-VCS-…'.
 -- The middle differs between the old and new formats, so only the start is read.
 CREATE MACRO serial_part(serial, part) AS try_cast(regexp_extract(serial, '^\s*(\d+)-(\d+)-(\d+)-', part) AS BIGINT);
 
@@ -21,9 +19,8 @@ CREATE MACRO clean_text(text) AS nullif(trim(regexp_replace(text, '[\s\p{Z}\x{20
 CREATE MACRO name_words(name) AS
     trim(regexp_replace(lower(strip_accents(coalesce(name, ''))), '[^\p{L}\p{N}]+', ' ', 'g'));
 
--- The key that makes one owner of many spellings: 'Interface, Inc.', 'Interface Inc' and 'INTERFACE' are all
--- 'interface'. A legal form at the end is dropped; blanks and placeholders ('_', 'N/A', 'Other') become
--- 'unspecified'.
+-- One key per owner, whatever the spelling: 'Interface, Inc.', 'Interface Inc' and 'INTERFACE' are 'interface'.
+-- A legal form at the end is dropped; blanks and placeholders ('_', 'N/A', 'Other') become 'unspecified'.
 CREATE MACRO owner_key(name) AS CASE
     WHEN replace(name_words(name), ' ', '') IN ('', 'na', 'none', 'null', 'other', 'unknown', 'unspecified')
         THEN 'unspecified'

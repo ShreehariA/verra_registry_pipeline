@@ -11,7 +11,7 @@ day = date.fromisoformat(manifest["snapshot_date"])
 balance, vintages, retirers, checks = data["balance"], data["vintages"], data["retirers"], data["checks"]
 
 st.title("Verra registry")
-st.caption(f"Every carbon credit Verra has issued, and what has happened to it, on {day.day} {day:%B %Y}.")
+st.caption(f"Every carbon credit Verra has issued, and what happened to it, as of {day.day} {day:%B %Y}.")
 
 issued = credits["issued"]
 st.metric("Credits issued", compact(issued), help=f"{issued:,} credits")
@@ -66,4 +66,4 @@ if retired:
 st.page_link("app_pages/retirers.py", label=f"**Retirers.** {answer}", icon=":material/corporate_fare:")
 
 st.space("medium")
-st.caption("Every number here can be traced to the lines of Verra's files it came from, on the SQL page.")
+st.caption("Any number here can be traced back to Verra's files on the SQL page.")

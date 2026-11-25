@@ -53,10 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def build(config: Config, snapshot: date | None = None) -> dict[str, Any]:
-    """Ingest, transform and check one snapshot in memory, then write every layer and, last, the manifest.
-
-    Every check runs before anything is written, so a failed one leaves the lake exactly as it was.
-    """
+    """Build one snapshot in memory, and write it only if every check passes: the manifest last."""
     with duckdb.connect() as con:
         con.execute("SET threads = 1")  # one thread: the same input always gives the same bytes
         manifest = ingest(con, config, snapshot)

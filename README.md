@@ -1,83 +1,29 @@
 # Verra Registry Pipeline
 
-Turns Verra's three daily registry exports into a clean, tested data model, with a dashboard that answers three questions:
-1. For each project: how much was issued, retired and cancelled, and how much is still available?
+Turns Verra's daily carbon-credit exports into clean, tested tables, with a dashboard that answers three questions:
+
+1. For each project, how much was issued, retired and cancelled, and how much is still available?
 2. How does credit activity break down by vintage?
-3. Who are the largest retirers, and what do they retire?
+3. Who retires the most credits, and what do they retire?
+
+A credit stands for one tonne of CO₂ reduced or removed. It is **retired** when someone uses it to offset their emissions, and **cancelled** when it's taken out of use for any other reason. Its **vintage** is the year the reduction happened.
 
 ![The dashboard's overview: every credit issued, split into retired, cancelled and still available](docs/images/overview.png)
 
-**Contents**
-1. [Quick start](#quick-start)
-2. [The answers for the 2026-11-17 snapshot](#the-answers-for-the-2026-11-17-snapshot)
-3. [Running it on another snapshot](#running-it-on-another-snapshot)
-4. [How it works](#how-it-works)
-5. [The data model](#the-data-model)
-6. [What the data analysis found](#what-the-data-analysis-found)
-7. [Decisions, and the alternatives rejected](#decisions-and-the-alternatives-rejected)
-8. [Assumptions](#assumptions)
-9. [The quality gate and the tests](#the-quality-gate-and-the-tests)
-10. [The dashboard](#the-dashboard)
-11. [Cloud demo](#cloud-demo)
-12. [What's next](#whats-next)
-13. [Documentation](#documentation)
-14. [Layout](#layout)
-
-Each section is a summary. The detail behind it is in a short page in [`docs/`](#documentation).
-
 ## Quick start
 
-You need [uv](https://docs.astral.sh/uv/). It installs Python 3.13 if it's missing.
+You need [uv](https://docs.astral.sh/uv/) and `make`. uv installs Python 3.13 if it's missing.
 
 ```bash
-make setup       # create .venv with the locked dependencies
-make build       # the one command: raw files to bronze, silver and gold, behind a quality gate (about 1 second)
-make dashboard   # http://localhost:8501
+make setup       # install the locked dependencies
+make build       # build every table from the files in data/landing (about a second)
+make dashboard   # open http://localhost:8501
 make check       # lint, type-check and run the 70 tests
-make analysis    # re-run the data analysis behind the findings below
 ```
 
-Step by step, with what you should see and what to do when you don't: [the operating procedure](docs/sop.md).
+`make` on its own lists every command. Step by step, with what you should see, Docker and the cloud: [how to run it](docs/sop.md).
 
-Without `make`: `uv sync`, then `uv run verra build`, then `uv run streamlit run dashboard/app.py`.
-
-With Docker instead (it needs neither uv nor Python):
-
-```bash
-docker build -t verra .
-mkdir -p lake        # yours: on Linux, a folder Docker made for the mount would belong to root
-docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/data/landing:/data/landing:ro" -v "$PWD/lake:/data/lake" verra \
-    verra build --landing /data/landing --lake /data/lake
-docker run --rm -p 8080:8080 -v "$PWD/lake:/data/lake:ro" verra      # http://localhost:8080
-```
-
-The build prints what it read and what the quality gate saw:
-
-```
-Snapshot 2026-11-17 from data/landing
-
-  issuances        2,724 read    2,724 loaded   0 quarantined
-  retirements     23,276 read   23,275 loaded   1 quarantined
-  cancellations      471 read      471 loaded   0 quarantined
-
-Findings
-  VerraRetirements_2026-11-17.csv: starts with a byte-order mark, which was removed
-  VerraRetirements_2026-11-17.csv: does not end with a newline, so its last record may be cut off
-  VerraRetirements_2026-11-17.csv: line 23284 quarantined: expected 20 fields, found 9; the file ends inside this record, so it was probably cut off
-  VerraCancelled_2026-11-17.csv: uses Windows (CRLF) line endings
-
-Quality gate passed: all 6 error checks are clean
-  warning: events with no readable date: 19 row(s), 209,992 credits
-  warning: records quarantined: unreadable lines in the raw files: 1 row(s)
-  warning: retired credits with no named owner: 7,390 row(s), 39,846,198 credits
-  warning: retired or cancelled before the batch was issued: 20 row(s), 453,415 credits
-
-Credits: issued 198,511,826 · retired 56,564,196 · cancelled 6,123,377 · available 135,824,253
-```
-
-To query any table directly, raw rows included: `make query SQL="select * from gold.mart_project_balance order by issued desc limit 5"`, or the dashboard's SQL page.
-
-## The answers for the 2026-11-17 snapshot
+## The answers, for the 2026-11-17 snapshot
 
 | | |
 |---|---|
@@ -87,68 +33,27 @@ To query any table directly, raw rows included: `make query SQL="select * from g
 | Cancelled | 6,123,377 |
 | Still available | 135,824,253 (68.4% of issued) |
 | Largest retirers | Interface, Inc. 745,954 · Brisbane City Council 712,027 · Delta Air Lines 644,713 |
-| Retired credits with no named owner | 39,846,198 (70.4%) |
-| Issued credits with a multi-year vintage | 33,573,921 (16.9%) |
+| Retired with no named owner | 39,846,198 (70.4% of retired) |
 
-`tests/test_real_snapshot.py` checks these numbers on every run. Each one was first worked out in the data analysis, from the files as delivered, before the cleaning and the model were written.
-
-**How we know they're right:**
-1. **Nothing is lost on the way in.** For every file, the records read equal the records loaded plus the ones quarantined, and every row keeps its file, line and checksum.
-2. **Every layer adds up.** Silver has one row per bronze row, the fact table equals silver, and every mart adds up to the fact table. If not, nothing is written.
-3. **Every retired credit traces back to an issuance:** each one lies inside an issued batch, and none is used twice.
-4. **An independent check:** the data analysis (`analysis/`) worked out the numbers above with its own SQL, before the cleaning and the model were written, and a test holds the pipeline to them. Only the file reader is shared, and `analysis/files.py` re-reads the raw bytes to check it.
-5. **The same input gives the same bytes,** on macOS and in a Linux container.
-
-More: [checks and tests](docs/quality.md).
-
-## Running it on another snapshot
-
-Put the three files in `data/landing/` with the same names (`VerraIssuances_<YYYY-MM-DD>.csv`, `VerraRetirements_<YYYY-MM-DD>.csv`, `VerraCancelled_<YYYY-MM-DD>.csv`), then build that date from an empty lake:
-
-```bash
-make clean build SNAPSHOT=2026-11-24
-```
-
-- **Why name the date:** without it, the build takes the newest date that has all three files, which is ours (2026-11-17) if yours is older.
-- **Why `make clean`:** every snapshot built stays in `lake/`, in its own folder, and SQL and the dashboard show the newest one. An empty lake shows exactly the one you built.
-- **The report says so** when the lake holds a newer snapshot than the one built, and when a newer date was skipped for a missing file.
-- **For one run:** `uv run verra build --landing <folder>` reads another folder, and `--lake <folder>` writes elsewhere.
-
-What happens to input it can't trust:
-
-| The input | What happens |
-|---|---|
-| A date with a file missing | That date is skipped, and the newest complete date is built. The report names the date built, and the skipped date with the file it lacks. It's an error only when no date is complete, or when `--snapshot` asks for that date. |
-| A required column missing, or more than 1% of a file's lines unreadable | The run stops with one clear sentence and writes nothing. |
-| A record that can't be read (a cut-off last line, a broken quote) | It goes to `bronze.rejected_records` with its reason and exact text, and the run carries on. |
-| A renamed header | One alias line in `pipeline.toml` maps it to the old name. |
-| A value that can't be read (a date, a number, a serial) | It becomes NULL in silver. The quality gate stops the build if a number would be wrong; otherwise it warns. |
-
-More: [how a build works](docs/pipeline.md).
+**Why you can trust them:**
+- **Nothing is lost.** Every record read is either loaded or set aside with its reason, and keeps its file and line.
+- **Every layer adds up** to the one before it. If one doesn't, nothing is written.
+- **Every retired credit traces back** to the batch it was issued in, and none is used twice.
+- **They were worked out twice.** The [data analysis](docs/data-analysis.md) found them first, with its own SQL, and a test holds the pipeline to them. They share only the file reader, which `analysis/files.py` checks byte by byte.
 
 ## How it works
 
-![Data architecture, as built](docs/architecture/verra-pipeline-as-built-data.png)
+![How the data flows](docs/architecture/verra-pipeline-as-built-data.png)
 
-Medallion layers, one Parquet file per table and snapshot date, under `lake/`:
-- **Landing:** the raw files, only ever read. Each file's SHA-256 checksum is recorded.
-- **Bronze:** every record exactly as delivered, all text, plus where it came from: snapshot date, file, line and checksum. Records that can't be read go to `rejected_records`, with their exact text.
-- **Silver:** one clean table per export, one row per bronze row. Values are typed, trimmed and repaired. A value that can't be read becomes NULL; nothing is dropped.
-- **Gold:** a star schema, three marts (one per question) and `quality_results`.
+`make build` does everything in memory, and writes only when every check passes:
 
-**One command builds everything inside one in-memory DuckDB database:**
-1. `ingest` reads and checks the files, then loads bronze;
-2. `transform` runs the SQL in `sql/` to build silver and gold, then the quality checks;
-3. only then are bronze, silver and gold written, each file atomically (a temporary name, then a rename), with the manifest last.
+1. **Landing:** Verra's raw files. They're only ever read.
+2. **Bronze:** every record exactly as delivered, plus the file and line it came from. A record that can't be read goes to `bronze.rejected_records`, with the reason.
+3. **Silver:** every value read and cleaned: dates, numbers, owner names. No row is dropped. A value that can't be read becomes empty (NULL).
+4. **Gold:** the tables you query, including one per question.
+5. **Quality gate:** 19 checks. If one that guards a number fails, nothing is written.
 
-A failed check leaves the lake exactly as it was. Readers (`verra query`, the dashboard) see only snapshots that have a manifest, so a half-written build is never visible. The same input always gives byte-identical files, on macOS and in the Linux container alike.
-
-**Where things live:**
-- **`pipeline.toml`:** where the files are, how they're named, the reject budget, and the columns each export must have.
-- **`sql/`:** what the data means: the macros, silver, gold and the checks.
-- **Python** (`src/verra_pipeline/`, about 610 lines): how to read untrusted CSV, write atomically and run the steps.
-
-More: [how a build works](docs/pipeline.md), step by step, and [the architecture](docs/architecture.md), with the production design it was cut down from.
+It writes to `lake/`, one Parquet file per table and day. The same files always give the same bytes. More: [how a build works](docs/pipeline.md).
 
 ## The data model
 
@@ -160,196 +65,161 @@ erDiagram
     fct_credit_event {
         varchar event_type PK "issuance, retirement or cancellation"
         varchar serial_number PK
-        bigint batch_id "shared with the issuance the credits came from"
-        bigint serial_first
-        bigint serial_last
         bigint project_id FK
-        varchar owner_key FK "retirements only"
-        date event_date "NULL when undated"
-        varchar vintage "as Verra writes it: 2013, or 2007 - 2008"
-        int vintage_start
-        int vintage_end
+        varchar owner_key FK
+        date event_date
+        varchar vintage
         bigint quantity
     }
     dim_project {
         bigint project_id PK
         varchar project_name
-        varchar sectoral_scope
-        varchar methodology
-        varchar region
         varchar country
-        varchar state_province
     }
     dim_beneficial_owner {
-        varchar owner_key PK "one per owner, whatever the spelling"
-        varchar owner_name "the spelling with the most credits"
-        varchar spellings "every spelling merged"
+        varchar owner_key PK
+        varchar owner_name
     }
 ```
 
-The three marts are built from this star, one per question; the table says how.
-
-| Table | One row per | Key | How it relates |
+| Table | One row per | Key | Relations |
 |---|---|---|---|
-| `gold.fct_credit_event` | issuance, retirement or cancellation | `event_type` + `serial_number` | `project_id` → `dim_project`. `owner_key` → `dim_beneficial_owner` (retirements). A retirement or cancellation has the same `batch_id` and `project_id` as its issuance, and a serial range inside the issuance's range. |
-| `gold.dim_project` | project | `project_id` | Each project's most common combination of details: methodology and country can differ between batches. |
-| `gold.dim_beneficial_owner` | owner, spellings merged | `owner_key` | `unspecified` holds blank and placeholder owners. |
-| `gold.mart_project_balance` | project | `project_id` | **Q1:** issued, retired, cancelled, available. |
-| `gold.mart_vintage_activity` | vintage, as written | `vintage` | **Q2:** with `vintage_start` and `vintage_end` for charts. |
-| `gold.mart_top_retirers` | owner and project | `owner_key` + `project_id` | **Q3:** `owner_rank` ranks named owners; credits, vintages and dates for each project. |
-| `gold.quality_results` | quality check | `check_name` | What the gate measured on this snapshot. |
-| `silver.issuances`, `silver.retirements`, `silver.cancellations` | one per bronze row | `_source_file` + `_source_line` | Typed and cleaned; the fact table stacks them. |
-| `bronze.*` | raw record | `_source_file` + `_source_line` | Exactly as delivered, plus lineage. |
+| `gold.fct_credit_event` | issuance, retirement or cancellation | `event_type` + `serial_number` | `project_id` → `dim_project`. `owner_key` → `dim_beneficial_owner`, for retirements. |
+| `gold.dim_project` | project | `project_id` | Each project's most common details |
+| `gold.dim_beneficial_owner` | owner, every spelling merged | `owner_key` | `unspecified` holds blank and placeholder owners |
+| `gold.mart_project_balance` | project | `project_id` | Question 1 |
+| `gold.mart_vintage_activity` | vintage, as Verra writes it | `vintage` | Question 2 |
+| `gold.mart_top_retirers` | owner and project | `owner_key` + `project_id` | Question 3 |
+| `gold.quality_results` | quality check | `check_name` | What the gate found |
+| `silver.*` and `bronze.*` | record in a raw file | `_source_file` + `_source_line` | The way back to the raw line |
 
-Every credit total is `sum(quantity)` over the fact table, and available = issued − retired − cancelled.
-
-More: [the data model](docs/data-model.md): how each value is read, how owner spellings are merged, and example queries.
+A retirement or cancellation shares its `batch_id` with the issuance its credits came from. Every total is `sum(quantity)` over the fact table. More: [the data model](docs/data-model.md).
 
 ## What the data analysis found
 
-Before any cleaning was written, every line of the three files was read and profiled: encodings, line endings, every column's values, and how the files link. The scripts are in [`analysis/`](analysis), one per question, and `make analysis` re-runs them all. These findings shaped the pipeline most:
+Before any cleaning was written, every line of the three files was read and profiled. The scripts are in [`analysis/`](analysis), and `make analysis` re-runs them. What shaped the pipeline most:
 
-| Found in the files | How it's handled |
-|---|---|
-| Retirements start with a byte-order mark and end in a cut-off record; cancellations use Windows line endings | Bronze reads all of it; the cut-off record goes to quarantine with its exact text |
-| 7 retirement records hold a line break inside a quoted field | The CSV reader follows the quotes and records the line each record starts on |
-| Two date formats: `19 Mar 2009`, and `01-Apr-09` in cancellations | `parse_date` reads both; anything else becomes NULL, and the gate counts it |
-| 19 retirements have no date (209,992 credits); Verra flags them itself | Kept in every total; shown as "undated"; a warning |
-| 16.9% of issued credits have a multi-year vintage (`2007 - 2008`) | `vintage_start` and `vintage_end`; charts count a range in its first year and say so |
-| A serial number starts with the batch number and the range; quantity = last − first + 1 on every row | Every retirement and cancellation is traced to its issued batch: no credit is used twice, and none comes from nowhere |
-| 70.4% of retired credits name no owner: blank, `_`, `-`, `N/A`, `Other` | Grouped as `unspecified`, left out of the ranking and stated on the dashboard |
-| One owner, many spellings: case, punctuation, legal form, mis-encoded text (`StÃ¤dtische` for `Städtische`) | Names are repaired and given an `owner_key`. Without it, Delta Air Lines ranks first and the placeholder `_` fifth; with it, Interface, Inc. is first. |
-| A naive cleaning rule would blank Chinese company names | The key keeps letters of every alphabet |
+- **The files are messy:** a byte-order mark, a cut-off last record, Windows line endings, and line breaks inside fields.
+- **Dates come in two formats** (`19 Mar 2009` and `01-Apr-09`), and 19 retirements have none.
+- **16.9% of issued credits have a multi-year vintage,** such as `2007 - 2008`.
+- **A serial number holds the batch and the range,** so every retired credit can be traced to its issuance.
+- **One owner has many spellings:** case, punctuation, legal forms and broken accents (`StÃ¤dtische`). Merging them changes who ranks first: Interface, Inc., not Delta Air Lines.
+- **70.4% of retired credits name no owner:** blank, `_`, `N/A` and the like.
 
-More: [the data analysis](docs/data-analysis.md): every finding and the decision it led to, the reference numbers, and what was left alone on purpose.
+More: [the data analysis](docs/data-analysis.md).
 
 ## Decisions, and the alternatives rejected
 
 | Decision | Why | Rejected |
 |---|---|---|
-| Medallion layers, every snapshot kept | Every number traces back to a raw line; yesterday stays queryable | Overwriting one set of tables each day |
-| DuckDB, inside the process | About 10 MB a day: it reads and writes Parquet natively, with nothing to run or pay for | Spark: a cluster's start-up time, cost and operations buy nothing at this size |
-| Parquet files plus DuckDB views made on demand | Files stay byte-identical; nothing locks the lake while the dashboard reads it | A saved DuckDB file: its bytes change on every write, and only one process can write it |
-| Everything built in memory, then written | A failed check writes nothing (integrity rule 6) | Writing each layer as it's made |
-| SQL for meaning, Python for mechanics | The model reads as SQL; the CSV handling and writing are tested Python | dbt: a second tool and its setup for about 360 lines of SQL |
-| One fact table for all three kinds of event | Balances are sums by kind, and the gate compares one table with silver | Three fact tables; the 3NF model of the earlier design (`docs/architecture.md`) |
-| Flag, never drop | The totals reconcile; problems are counted, not hidden | Filtering bad rows in silver |
-| Errors stop the build only when a number would be wrong | Warnings (undated rows, no owner) are facts about Verra's data, not reasons to publish nothing | Failing on every oddity |
-| Owner names merged by a key | Q3's ranking depends on it | Fuzzy matching: hard to explain, and it can merge different companies |
-| Settings in `pipeline.toml` | A renamed header or new folder is a settings change, not a code change | Hard-coded columns; a JSON Schema registry (in the earlier, heavier version) |
-| Terraform for the cloud demo, run by a short script | `down` deletes exactly what `up` made, from Terraform's record, and the plan shows every change before it happens | gcloud commands alone: `down` must list by hand everything `up` made |
+| DuckDB inside the process, writing Parquet | About 10 MB a day: nothing to run or pay for | Spark: a cluster buys nothing at this size |
+| Bronze, silver and gold, every day kept | Every number traces back to a raw line | Overwriting one set of tables each day |
+| Build in memory, write only when every check passes | A failed check changes nothing | Writing each layer as it's made |
+| SQL for the model, Python for reading files | The model reads as SQL; file handling is tested Python | dbt: a second tool for about 350 lines of SQL |
+| One fact table for all three kinds of event | Each balance is a sum by kind | Three fact tables |
+| Flag bad values, never drop rows | The totals still add up, and problems are counted | Filtering bad rows out |
+| Stop only when a number would be wrong | Undated rows and missing owners are facts about Verra's data | Failing on every oddity |
+| Merge owner spellings with a key | Question 3's ranking depends on it | Fuzzy matching: hard to explain, and it can merge different companies |
+| Terraform for the cloud demo | `down` deletes exactly what `up` made | gcloud commands alone |
 
-More: [decisions, alternatives and limits](docs/decisions.md): the reasoning, what happens when Verra changes its files, and the shortcuts taken on purpose.
+More: [decisions and their limits](docs/decisions.md).
 
 ## Assumptions
 
-- **Each daily file is the full history, not one day's changes.** The dates run from 2009 to the day before the snapshot. So each build rebuilds the snapshot rather than appending.
-- **Available = issued − retired − cancelled.** The files don't cover buffer pools or transfers between accounts.
-- **A multi-year vintage counts in its first year in charts by year.** The files don't say how it splits; the marts keep the exact label.
-- **A blank or placeholder owner is "unspecified".** The spellings of one owner differ only in case, accents, punctuation or a legal form at the end. Names that differ more stay apart.
-- **Undated retirements count in every total**; they're missing only from charts over time.
-- **A serial number is unique within one export.** A duplicate stops the build, because it would count credits twice.
-- **The date in the file name is the snapshot date.**
+- Each day's files hold the full history, not just that day's changes, so each day is built on its own.
+- Available = issued − retired − cancelled. The files don't cover buffer pools or transfers.
+- On charts by year, a multi-year vintage counts in its first year. The tables keep the exact label.
+- A blank or placeholder owner, such as `_` or `N/A`, is "unspecified": counted in every total, but not ranked.
+- Undated events count in every total. They're only missing from charts over time.
+- A serial number is unique within one file. A duplicate stops the build, because it would count credits twice.
+- The date in a file's name is the snapshot date.
 
-## The quality gate and the tests
+## Running it on another snapshot
 
-`sql/checks.sql` runs after gold is built and before anything is written. Its result is kept in `gold.quality_results` and shown on the dashboard.
+Put the three files in `data/landing/`, named like the ones there (`VerraIssuances_<date>.csv`, `VerraRetirements_<date>.csv`, `VerraCancelled_<date>.csv`), then:
 
-**Error checks** (a number would be wrong, so the build stops):
-- silver has exactly one row per bronze row;
-- every quantity is a whole number above zero (`12.5` stops the build; it isn't rounded to 13);
-- every row has a project;
-- no serial number appears twice in an export;
-- the fact table has the same rows and credits as silver;
-- every mart adds up to the fact table.
+```bash
+make clean build SNAPSHOT=2026-11-24
+```
 
-The marts join the dimensions, so the last check also proves no event points at a missing project or owner.
+`SNAPSHOT` picks the date. Without it, the build takes the newest date that has all three files. `make clean` empties `lake/` first, so the dashboard shows only that day.
 
-**13 warnings** report facts about Verra's data, and the build goes on: unreadable records, dates and serials, credits outside every batch or used twice, negative balances, and retirements with no named owner. Four fire on this snapshot: 1 quarantined record, 19 undated retirements, 20 retirements dated before their batch was issued, and 7,390 retirements with no named owner.
+| If the input has | What happens |
+|---|---|
+| A file missing on the newest date | That date is skipped, and the report says so |
+| A required column missing, or over 1% of a file unreadable | The build stops with one clear sentence, and writes nothing |
+| A record that can't be read | It goes to `bronze.rejected_records`, with the reason and its exact text |
+| A renamed header | One line in `pipeline.toml` maps it to the old name |
+| A value that can't be read | It becomes NULL. The quality gate stops the build if a number would be wrong. |
 
-**70 tests** (`make check`, also run by GitHub Actions on every push) cover the real files' quirks and six kinds of broken input refused with nothing written, every macro and owner key, a failed gate writing nothing, byte-identical rebuilds, every number in the answers above, the data analysis that first found them, every dashboard page, the SQL page and its guardrails, and the deploy's dry runs. The risky lines were mutation-checked: broken on purpose, to confirm a test fails.
+## Tests
 
-More: [checks and tests](docs/quality.md): every check and today's result, each integrity rule with the test that proves it, and the tests file by file.
+`make check` runs the linters and 70 tests. GitHub Actions runs the same on every push to main and every pull request. The tests cover the files' quirks, six kinds of broken input, every cleaning rule, the quality gate, byte-identical rebuilds, the answers above, every dashboard page and the deploy's dry runs. More: [checks and tests](docs/quality.md).
 
 ## The dashboard
 
-`make dashboard` serves it at http://localhost:8501: seven pages, each with its own address.
+`make dashboard` serves seven pages at http://localhost:8501.
 
-| Projects (Q1) | Vintages (Q2) |
+| Projects (question 1) | Vintages (question 2) |
 |---|---|
-| ![Q1](docs/images/projects.png) | ![Q2](docs/images/vintages.png) |
-| **Retirers (Q3)** | **SQL** |
-| ![Q3](docs/images/retirers.png) | ![SQL](docs/images/sql.png) |
+| ![Projects](docs/images/projects.png) | ![Vintages](docs/images/vintages.png) |
+| **Retirers (question 3)** | **SQL** |
+| ![Retirers](docs/images/retirers.png) | ![SQL](docs/images/sql.png) |
 
-- **Overview:** every credit issued, as one bar split into retired, cancelled and still available, then each question answered in a line.
-- **Projects, Vintages, Retirers:** the three questions. Pick a project or an owner to see what's behind its numbers.
-- **Over time** and **Data quality:** activity per year, and how far the numbers can be trusted.
-- **SQL:** any query on any table, raw rows included, read-only. After DBeaver: a navigator that searches tables and columns, examples, a history, each table's profile, and the star schema.
-
-The three fates of a credit wear the same three colours everywhere, checked for colour blindness in light and dark, and the answers' tables sit under their charts.
-
-More: [the dashboard](docs/dashboard.md): the chart for each question and why, the look, and the SQL page's guardrails.
+The other pages are the overview, activity over time, and data quality. The SQL page runs any query on any table, read-only. More: [the dashboard](docs/dashboard.md).
 
 ## Cloud demo
 
-![Infrastructure, as built](docs/architecture/verra-pipeline-as-built-infra.png)
+![The cloud demo on Google Cloud](docs/architecture/verra-pipeline-as-built-infra.png)
 
-The same image runs on Google Cloud: a Cloud Run job builds the lake in a Cloud Storage bucket, and a public Cloud Run service serves the dashboard. Terraform (`deploy/main.tf`) creates and deletes every resource, and `deploy/gcp.sh` runs it. It needs `gcloud`, `terraform` and a project of your own:
+The same image runs on Google Cloud: a job builds the lake in a storage bucket, and a public service shows the dashboard. Terraform creates and deletes it all. You need `gcloud`, `terraform` and a project of your own:
 
 ```bash
-GCP_PROJECT=<your-project> deploy/gcp.sh up --dry-run    # Terraform's plan: what it would do; changes nothing
-GCP_PROJECT=<your-project> deploy/gcp.sh up              # create or update; Terraform shows the plan and waits for "yes"
-GCP_PROJECT=<your-project> deploy/gcp.sh run             # upload data/landing and run the pipeline
-GCP_PROJECT=<your-project> deploy/gcp.sh down            # delete everything up created, after the same "yes"
+GCP_PROJECT=<your-project> deploy/gcp.sh up --dry-run   # show the plan; changes nothing
+GCP_PROJECT=<your-project> deploy/gcp.sh up             # create it, after you type yes
+GCP_PROJECT=<your-project> deploy/gcp.sh run            # upload data/landing and build
+GCP_PROJECT=<your-project> deploy/gcp.sh down           # delete everything up made
 ```
 
-The gcloud default project is never used, nothing changes until you type `yes` to Terraform's plan, and `down` deletes everything `up` made. It hasn't been deployed yet, so writes through the bucket mount, the public URL and Cloud Build's permissions are still unproven.
-
-More: [the cloud demo](docs/deploy.md): what it creates, the two sign-ins, the safety rules, and what to do if something fails. The production design it was cut down from is in [the architecture](docs/architecture.md).
+It hasn't been deployed yet: see [what's still unproven](docs/deploy.md#not-yet-proved). More: [the cloud demo](docs/deploy.md).
 
 ## What's next
 
-- **Stream large files.** The reader holds a whole file in memory, about 15 times its size. That's fine up to roughly 100 MB a file (`shortcut:` in `ingest.py`).
-- **Read owners from Retirement Reason Details.** 1,214 retirements with a blank owner say who they were for there ("on behalf of …"). 51 of them name Interface, for another 1,114,109 credits: "Retired for Interface Inc. 2009 Cool Carpet Program".
-- **Split the multi-value fields** (scopes, methodologies, labels) against a list of the known values, since single values contain commas.
-- **Map countries to ISO codes.** The 2-letter code inside the serial is often wrong, so it can't be used as is.
-- **Compare snapshots day to day:** what changed, which retirements appeared, which records were restated.
-- **Run it daily on its own:** Cloud Scheduler or Eventarc, then the production design's run catalog, alerts on new warnings and BigQuery.
-- **Spread multi-year vintages across their years,** if Verra's per-year data becomes available.
-
-The shortcuts taken on purpose, and when to undo each, are in [decisions, alternatives and limits](docs/decisions.md#known-gaps-and-shortcuts).
+- **Stream large files.** The reader holds a whole file in memory, which is fine up to about 100 MB.
+- **Read owners from the retirement details.** 1,214 retirements with a blank owner name one there ("on behalf of …").
+- **Split the multi-value fields** (scopes, methodologies) against a list of known values.
+- **Map countries to ISO codes.**
+- **Compare snapshots day to day:** what changed, and what was restated.
+- **Run it daily on its own,** with alerts on new warnings.
+- **Deploy from CI.** Today CI only checks and tests.
+- **Bring back parts of the [first version](docs/architecture.md#what-the-first-version-had-and-why-it-went),** once more registries or a team need them: schema files that declare every table, a class per step so a second registry can plug in its own reader, and typed errors.
 
 ## Documentation
 
-Short pages in `docs/`, each one the detail behind a section above:
-
-| Page | What it covers |
+| Page | For |
 |---|---|
-| [The operating procedure](docs/sop.md) | Step by step, with commands: set up, build, look at the answers, run a new snapshot, test, re-run the analysis, Docker, deploy, change things, and what to do when something goes wrong |
-| [How a build works](docs/pipeline.md) | The steps, reading files without trusting them, all-or-nothing writes, the lake, byte-identical output |
-| [The data model](docs/data-model.md) | How each value is read, how owner spellings are merged, how each mart is made, example queries |
-| [The data analysis](docs/data-analysis.md) | What the three files really contain, the decision each finding led to, the reference numbers, and the scripts in `analysis/` that found them |
-| [Checks and tests](docs/quality.md) | Why the numbers can be trusted: the 19 checks and today's results, each integrity rule with its test |
-| [Decisions, alternatives and limits](docs/decisions.md) | The reasoning behind each choice, what happens when Verra changes its files, the known gaps |
-| [The dashboard](docs/dashboard.md) | What each page answers and why each chart, the look and the rules behind it, the SQL page and its guardrails |
-| [The cloud demo](docs/deploy.md) | What Terraform creates, how to deploy it, the safety rules, what to do if something fails |
-| [The architecture](docs/architecture.md) | As built against the production design, with diagrams, and the path to production |
+| [How to run it](docs/sop.md) | Every task, step by step, with commands |
+| [How a build works](docs/pipeline.md) | The steps, from raw file to lake |
+| [The data model](docs/data-model.md) | How each value is read, and what each table holds |
+| [The data analysis](docs/data-analysis.md) | What the files really contain, and the scripts that found it |
+| [Checks and tests](docs/quality.md) | Why the numbers can be trusted |
+| [Decisions](docs/decisions.md) | The choices, what was rejected, and the known limits |
+| [The dashboard](docs/dashboard.md) | Each page, and the SQL page's safety rules |
+| [The cloud demo](docs/deploy.md) | Deploying it, and what to do if it fails |
+| [The architecture](docs/architecture.md) | As built, against the production design |
 
 ## Layout
 
 ```
-pipeline.toml          settings: paths, file names, reject budget, columns per export
-src/verra_pipeline/    the pipeline: ingest.py, transform.py, lake.py, config.py, cli.py
-sql/                   the model: macros.sql, silver/, gold/, checks.sql
-dashboard/             the Streamlit dashboard: app.py (the navigation), app_pages/, common.py (data, colours, charts), static/ (its font and tab icon)
-tests/                 70 tests; tiny fixture files dated 2030-01-15, plus the real snapshot
-analysis/              the data analysis: one script per question asked of the files (make analysis)
-deploy/main.tf         the cloud demo's resources, in Terraform
-deploy/gcp.sh          runs it: up, run, down
-Dockerfile             one image for the job and the dashboard
-docs/                  the detail behind this README, architecture diagrams (draw.io and PNG), screenshots
-data/landing/          the raw Verra files, never modified
-lake/                  generated by `make build` (git-ignored; `make clean` deletes it)
+pipeline.toml    settings: folders, file names, the columns each file must have
+src/             the pipeline, in Python
+sql/             the model: silver, gold and the quality checks
+dashboard/       the Streamlit dashboard
+analysis/        the data analysis scripts
+tests/           the tests, with tiny sample files
+deploy/          the cloud demo: Terraform and a script
+data/landing/    Verra's raw files, never changed
+lake/            what make build writes (make clean deletes it)
 ```
 
-**Scope.** The brief asks for about 2–4 hours and says it doesn't expect a production system. The core is small: the pipeline (about 610 lines of Python and 360 of SQL), the dashboard and the tests. The data analysis, the quality gate and the cloud demo go further, because the brief says the numbers being right matters most, and they're what proves it.
+**Scope.** The brief asks for 2–4 hours of work. The core is small: about 600 lines of Python and 350 of SQL. The data analysis, the quality gate and the cloud demo go further, because the brief says the numbers being right matters most.

@@ -1,6 +1,5 @@
--- One row per retirement, exactly one per bronze row; an undated retirement keeps a NULL date. The owner's name is
--- repaired where it was mis-encoded upstream (owner_repairs, made by transform.py) and trimmed, and owner_key
--- groups its spellings.
+-- One row per bronze row; an undated retirement keeps a NULL date. owner_repairs (made by transform.py) mends
+-- mis-encoded owner names, and owner_key groups their spellings.
 SELECT
     whole_number(project_id) AS project_id,
     clean_text(project_name) AS project_name,

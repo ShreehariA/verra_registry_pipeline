@@ -1,8 +1,6 @@
 """What every analysis script shares: one snapshot's three files, loaded as delivered, and a printer.
 
-The files are read by the pipeline's own reader (verra_pipeline.ingest), which only reads them: every value
-stays text, exactly as delivered, with the file and line it came from. Nothing is cleaned, and nothing is
-written. The scripts then ask DuckDB one question at a time.
+The pipeline's own reader loads them as text, with each row's file and line. Nothing is cleaned or written.
 """
 
 from pathlib import Path

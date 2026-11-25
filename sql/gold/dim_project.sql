@@ -1,6 +1,5 @@
--- One row per project found in any export. Name, scope, region and state are the same on every row of a project,
--- but methodology and country can change from batch to batch, so each project takes its most common combination
--- of details. Ties go to the alphabetically first, so a rebuild picks the same one.
+-- One row per project. Methodology and country can change between batches, so each project takes its most
+-- common details. Ties go to the first alphabetically, so a rebuild picks the same.
 WITH details AS (
     SELECT project_id, project_name, sectoral_scope, methodology, region, country, state_province
     FROM silver.issuances

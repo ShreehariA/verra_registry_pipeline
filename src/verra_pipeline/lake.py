@@ -1,9 +1,4 @@
-"""Where every layer is kept: one Parquet file per table and snapshot date, plus DuckDB views for SQL.
-
-A build writes its tables and then, last, a manifest that marks the snapshot finished. Every file
-is written under a temporary name and then renamed, so a crash never leaves half a file behind,
-and readers only ever see finished snapshots.
-"""
+"""The lake: one Parquet file per table and day, and a manifest, written last, that marks the day finished."""
 
 from __future__ import annotations
 
@@ -53,10 +48,8 @@ def write_json(document: dict[str, Any], path: Path) -> None:
 def connect(lake: Path, copy: bool = False) -> duckdb.DuckDBPyConnection:
     """An in-memory database with a view per table of the newest finished snapshot, e.g. gold.dim_project.
 
-    A build writes its manifest last, so a snapshot without one was interrupted and stays hidden.
-    The views are not saved to a file: a DuckDB file's bytes change on every write, and only one
-    process can write it, so a build would fail while the dashboard has it open.
-    With `copy`, each table is loaded into memory instead, so the connection needs no files afterwards.
+    Not a saved DuckDB file: its bytes change on every write, and a build couldn't write it while the
+    dashboard has it open. With `copy`, the tables are loaded into memory, so no file is read afterwards.
     """
     snapshot = newest_manifest(lake).parent.name
     con = duckdb.connect()
@@ -74,12 +67,10 @@ def connect(lake: Path, copy: bool = False) -> duckdb.DuckDBPyConnection:
 
 
 def lock_down(con: duckdb.DuckDBPyConnection, seconds: int) -> None:
-    """Make a `connect(lake, copy=True)` connection safe for SQL typed by anyone (the dashboard's SQL page).
+    """Make a `connect(lake, copy=True)` connection safe for SQL typed by anyone.
 
-    It can't open any file, to read or write, nor reach the network or load an extension: it only has
-    its own copy of the tables, which dies with it. Each query gets one thread, 256 MB and `seconds`,
-    and the settings are locked, so no query can undo this. Allowing just the lake's folder isn't
-    enough: DuckDB would let a query write there, over the files the dashboard reads.
+    It has no file or network access, only its own copy of the tables. Allowing just the lake's folder
+    isn't enough: DuckDB would let a query write there, over the files the dashboard reads.
     shortcut: every query copies the whole snapshot (50 ms and 44 MB today); past a few hundred MB,
     open a read-only DuckDB file of the snapshot instead.
     """

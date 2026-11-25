@@ -1,87 +1,70 @@
 # How a build works
 
-`make build` (or `uv run verra build`) turns one day's three files into every table, in one process, in about a second. This page follows a build from the raw files to the lake, and shows how each step keeps the pipeline's promises.
+`make build` turns one day's three files into every table, in about a second. This page follows one build.
 
-![Data architecture, as built](architecture/verra-pipeline-as-built-data.png)
+![How the data flows](architecture/verra-pipeline-as-built-data.png)
 
 ## The steps
 
-1. **Find the snapshot.** Files are named `<prefix>_<YYYY-MM-DD>.csv`. The newest date that has all three files is built, and the report's first line names it. A newer date with a file missing is skipped, and the report lists it with the file it lacks. `--snapshot` picks a date, and then a missing file is an error.
-2. **Read and check every file** (`ingest.py`). Nothing is written yet.
-3. **Load bronze** into one in-memory DuckDB database.
-4. **Build silver and gold** by running the SQL files in `sql/` (`transform.py`).
-5. **Run the quality gate** (`sql/checks.sql`). If an error check fails, the build stops here with one sentence, and nothing is written.
-6. **Write** every table to the lake, then the manifest, last (`lake.py`).
+1. **Find the snapshot:** the newest date that has all three files, or the date you give with `SNAPSHOT`.
+2. **Read and check every file** (`ingest.py`).
+3. **Load bronze** into an in-memory DuckDB database.
+4. **Build silver and gold** with the SQL files in `sql/` (`transform.py`).
+5. **Run the quality gate** (`sql/checks.sql`). If an error check fails, the build stops and writes nothing.
+6. **Write** every table to `lake/`, and the manifest last (`lake.py`).
 
-## Reading a file without trusting it
+## Reading files it doesn't trust
 
-- **Read once, as bytes.** Each file's SHA-256 checksum goes into the manifest and onto every bronze row. The raw file is never opened for writing.
-- **Text:** UTF-8, with or without a byte-order mark. A file that isn't UTF-8 is read as Windows-1252. Each of these is reported as a finding.
-- **Records:** Python's `csv` module follows the quotes, so a line break inside a field stays in its record. Windows and Unix line endings both work, and each record keeps the line it starts on.
-- **Quarantine:** a record with the wrong number of fields, such as a cut-off last line, goes to `bronze.rejected_records` with the reason and its exact text. The build carries on.
-- **The reject budget:** a file with more than 1% of its lines unreadable is refused, and the run stops. The budget counts lines, not records, because one stray quote can swallow many lines into a single record.
+- **The raw files are only read.** Each file's SHA-256 checksum goes on every bronze row.
+- **Text:** UTF-8, with or without a byte-order mark, or else Windows-1252. The report notes a byte-order mark or a fallback to Windows-1252.
+- **Records:** Python's `csv` module follows quotes, so a line break inside a field stays in its record. Windows and Unix line endings both work.
+- **Quarantine:** a record with the wrong number of fields, such as a cut-off last line, goes to `bronze.rejected_records`, with the reason and its exact text.
+- **The reject budget:** if more than 1% of a file's lines can't be read, the run stops. It counts lines, not records, because one stray quote can swallow many lines.
 
-## Headers matched by name
+## Headers
 
-- Headers are normalised (`Retirement QTY` becomes `retirement_qty`) and matched by name, in any order.
-- `pipeline.toml` lists each export's required and optional columns. A missing required column stops the run and names the column. A missing optional column is loaded empty, with a finding.
-- If Verra renames a header, one alias line in `pipeline.toml` maps the new name to the old one.
-- A new column is kept in bronze and listed in the manifest.
+Headers are matched by name, in any order: `Retirement QTY` becomes `retirement_qty`. `pipeline.toml` lists each file's required and optional columns:
+- a missing required column stops the run, and names it;
+- a missing optional column loads empty;
+- a renamed column needs one alias line;
+- a new column is kept in bronze.
 
-## Bronze: as delivered, plus where it came from
+## The layers
 
-Every value stays text, exactly as delivered. Four lineage columns say where each row came from: `_snapshot_date`, `_source_file`, `_source_line` and `_file_sha256`. So any number on the dashboard can be traced back to lines in a raw file.
-
-## Silver and gold
-
-The SQL files run in a fixed order: `macros.sql`, then `silver/`, then `gold/`. Python only runs them, and names a broken file in one line. How each value is read and modelled is in [the data model](data-model.md).
-
-## The quality gate
-
-19 checks run on the finished tables, before anything is written: 6 errors, which stop the build, and 13 warnings, which are reported. They are in [checks and tests](quality.md).
+- **Bronze** keeps every value as text, exactly as delivered, plus four lineage columns: `_snapshot_date`, `_source_file`, `_source_line` and `_file_sha256`. So any number can be traced back to lines in a raw file.
+- **Silver and gold** come from the SQL files, run in order: `macros.sql`, `silver/`, `gold/`. How each value is read: [the data model](data-model.md).
+- **The quality gate** runs 19 checks: 6 errors that stop the build, and 13 warnings. See [checks and tests](quality.md).
 
 ## Writing: all or nothing
 
 1. Every check runs before the first write.
-2. Each file is written under a temporary name, then renamed over the target, so a reader never sees half a file.
-3. A rebuild of a day first removes that day's manifest, so the day stays hidden until it's whole again.
-4. The manifest is written last. It records each input file, its checksum, the columns found, the rows read, loaded and quarantined, the findings, any newer date skipped, the gate's results and the credit totals.
-5. Readers (`verra query` and the dashboard) only see dates that have a manifest.
-
-## The lake
+2. Each file is written under a temporary name, then renamed, so no one ever reads half a file.
+3. Rebuilding a day first removes its manifest, so the day stays hidden until it's whole.
+4. The manifest goes last. It records the input files, their checksums, the row counts, the findings, the gate's results and the totals.
+5. `verra query` and the dashboard read only days that have a manifest, and show the newest.
 
 ```
 lake/
-  bronze/issuances/snapshot_date=2026-11-17/data.parquet    and retirements, cancellations, rejected_records
+  bronze/issuances/snapshot_date=2026-11-17/data.parquet
   silver/…/snapshot_date=2026-11-17/data.parquet
   gold/…/snapshot_date=2026-11-17/data.parquet
   _manifests/snapshot_date=2026-11-17/build.json
 ```
 
-Every snapshot stays in its own folder. `verra query` and the dashboard create views in memory over the newest finished snapshot; when a build writes an older date than one already there, its report ends with a note saying so. Nothing locks the files, so a build can run while the dashboard is open.
+Nothing locks the files, so you can build while the dashboard is open.
 
 ## Same input, same bytes
 
-- DuckDB runs on one thread, and every SQL file sorts its output (`ORDER BY`), so rows always come out in the same order;
-- nothing written holds a timestamp;
-- package versions are pinned in `uv.lock`.
+DuckDB runs on one thread, every SQL file sorts its output, nothing written holds a timestamp, and `uv.lock` pins every package. A test rebuilds and compares every file, and the Docker image on Linux gives the same 15 files as macOS.
 
-A test rebuilds and compares every file. Built in the Docker image on Linux, the 15 files are identical to the ones built on macOS, checksum for checksum.
-
-## Settings and the command line
-
-- **`pipeline.toml`:** where the files are, how they're named, the reject budget, and the columns each export must have. Paths are relative to the file.
-- **`verra build`** takes `--snapshot <date>`, `--landing <folder>` and `--lake <folder>` for one run, and `verra --config <file> build` reads other settings.
-- **`verra query "<SQL>"`** runs SQL on the newest finished snapshot (`make query SQL="…"`).
-- **Errors are one sentence,** for example: `error: the quality gate failed, so nothing was written: every quantity is a whole number above zero: 1 row(s)`.
+## Commands
 
 ```bash
-make build                                      # the newest complete snapshot in data/landing
-make clean build SNAPSHOT=2026-11-17            # an empty lake, then exactly that date
-uv run verra build --snapshot 2026-11-17        # a given date
+make build                                 # the newest complete date in data/landing
+make clean build SNAPSHOT=2026-11-17       # an empty lake, then that date
 uv run verra build --landing <folder> --lake <folder>
-uv run verra --config other.toml build          # other settings
+uv run verra --config other.toml build     # other settings
 make query SQL="select * from bronze.rejected_records"
 ```
 
-Step by step, with what you should see: [the operating procedure](sop.md).
+Errors are one sentence, for example: `error: the quality gate failed, so nothing was written: every quantity is a whole number above zero: 1 row(s)`.

@@ -143,14 +143,17 @@ resource "google_cloud_run_v2_service" "dashboard" {
   deletion_protection  = false
   invoker_iam_disabled = true # public: anyone with the URL can open it
   template {
-    service_account = google_service_account.verra["verra-dashboard"].email
+    service_account  = google_service_account.verra["verra-dashboard"].email
+    timeout          = "3600s" # an open page is one long request: the default 300 s cut it every 5 minutes
+    session_affinity = true    # and a page that reconnects goes back to the copy holding its session
     scaling {
       max_instance_count = 2 # and none while nobody is looking
     }
     containers {
       image = local.image
       resources {
-        limits = { cpu = "1", memory = "1Gi" }
+        limits   = { cpu = "1", memory = "1Gi" }
+        cpu_idle = true # pay for CPU only while a request is open; once limits are set, this defaults to false
       }
       volume_mounts {
         name       = "data"

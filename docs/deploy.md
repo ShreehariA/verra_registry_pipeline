@@ -38,6 +38,7 @@ deploy/gcp.sh down            # delete everything up made, after you type yes
 - **Nothing changes without a yes.** Terraform shows its plan first.
 - **Dry runs change nothing.** A test checks this with fake `terraform` and `gcloud` commands.
 - **Each service account has one role, on one bucket.** The dashboard's mount is read-only, so even a bug in it can't damage the lake.
+- **The image build is the exception.** It runs as the project's default compute account, which Google makes an Editor on a new project. Production would give the build an account of its own.
 - **The public SQL page is locked down** ([how](dashboard.md#the-sql-page)).
 - **`down` deletes everything `up` made,** except the APIs it turned on, which cost nothing. Keep `deploy/terraform.tfstate` until then: it's Terraform's record of what it made.
 

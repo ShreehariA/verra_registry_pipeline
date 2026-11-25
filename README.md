@@ -1,5 +1,7 @@
 # Verra Registry Pipeline
 
+**Live dashboard:** https://verra-dashboard-k2k4mrcqsa-uc.a.run.app (on Google Cloud; after a quiet spell, the first visit takes a few seconds to start)
+
 Turns Verra's daily carbon-credit exports into clean, tested tables, with a dashboard that answers three questions:
 
 1. For each project, how much was issued, retired and cancelled, and how much is still available?
@@ -53,7 +55,7 @@ make check       # lint, type-check and run the 70 tests
 4. **Gold:** the tables you query, including one per question.
 5. **Quality gate:** 19 checks. If one that guards a number fails, nothing is written.
 
-It writes to `lake/`, one Parquet file per table and day. The same files always give the same bytes. More: [how a build works](docs/pipeline.md).
+It writes to `lake/`, one Parquet file per table and day. Building the same files again gives the same bytes. More: [how a build works](docs/pipeline.md).
 
 ## The data model
 
@@ -181,7 +183,7 @@ GCP_PROJECT=<your-project> deploy/gcp.sh run            # upload data/landing an
 GCP_PROJECT=<your-project> deploy/gcp.sh down           # delete everything up made
 ```
 
-It hasn't been deployed yet: see [what's still unproven](docs/deploy.md#not-yet-proved). More: [the cloud demo](docs/deploy.md).
+It's live at [the dashboard](https://verra-dashboard-k2k4mrcqsa-uc.a.run.app). How long each step took, and what the deploy proved: [the run log](docs/run-log.md). More: [the cloud demo](docs/deploy.md).
 
 ## What's next
 
@@ -206,6 +208,7 @@ It hasn't been deployed yet: see [what's still unproven](docs/deploy.md#not-yet-
 | [Decisions](docs/decisions.md) | The choices, what was rejected, and the known limits |
 | [The dashboard](docs/dashboard.md) | Each page, and the SQL page's safety rules |
 | [The cloud demo](docs/deploy.md) | Deploying it, and what to do if it fails |
+| [Run log](docs/run-log.md) | How long each step took, locally and in the cloud |
 | [The architecture](docs/architecture.md) | As built, against the production design |
 
 ## Layout

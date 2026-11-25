@@ -55,7 +55,7 @@ Nothing locks the files, so you can build while the dashboard is open.
 
 ## Same input, same bytes
 
-DuckDB runs on one thread, every SQL file sorts its output, nothing written holds a timestamp, and `uv.lock` pins every package. A test rebuilds and compares every file, and the Docker image on Linux gives the same 15 files as macOS.
+DuckDB runs on one thread, every SQL file sorts its output, nothing written holds a timestamp, and `uv.lock` pins every package. A test rebuilds and compares every file, and the Docker image on the same Mac gives the same 15 files as macOS. On Google Cloud the data is the same, row for row, but some pages are compressed a few bytes differently ([run log](run-log.md)).
 
 ## Commands
 

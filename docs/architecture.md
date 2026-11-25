@@ -11,7 +11,7 @@ Open them in [app.diagrams.net](https://app.diagrams.net) (File â†’ Open from â†
 1. **Raw files are evidence.** They're only read, and every row keeps its file and line.
 2. **Check everything, then write.** Nothing is written until every check has passed.
 3. **Readers see only finished snapshots.** The manifest is written last.
-4. **Same input, same bytes,** on any machine.
+4. **Same input, same output:** the same bytes on the same machine, and the same data on any machine.
 5. **Flag, never drop.** Problems are counted and shown, not filtered away.
 6. **Settings are data, meaning is SQL, mechanics are Python:** `pipeline.toml`, `sql/`, `src/`.
 7. **The least machinery that keeps those promises.** Each piece of the production design is added when it's needed.

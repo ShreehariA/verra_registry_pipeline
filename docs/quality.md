@@ -8,7 +8,7 @@ The brief says the numbers being right matters most. This page shows how we know
 2. **Every layer adds up.** Silver has one row per bronze row, the fact table matches silver, and every mart adds up to the fact table.
 3. **Every retired credit traces back to an issuance.** Each retirement and cancellation lies inside one issued batch, and no credit is used twice.
 4. **The numbers were worked out twice.** The [data analysis](data-analysis.md) found them first, with its own SQL, and a test holds the pipeline to them. They share only the file reader, which `analysis/files.py` checks byte by byte.
-5. **The same input gives the same bytes,** on macOS and on Linux.
+5. **The same input gives the same output:** the same bytes on the same machine, and the same data, row for row, on Google Cloud.
 
 ## The quality gate
 

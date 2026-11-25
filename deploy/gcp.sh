@@ -26,6 +26,8 @@ region=${GCP_REGION:-us-central1}
 export CLOUDSDK_CORE_PROJECT=$project  # belt and braces: every gcloud call, the image build too, also passes --project
 
 terraform_deploy() {  # Terraform on deploy/main.tf, with the project and region named
+    # the Google provider looks the project up through this API, which a new project doesn't have on
+    run gcloud services enable cloudresourcemanager.googleapis.com --project "$project"
     terraform -chdir=deploy init -input=false > /dev/null
     terraform -chdir=deploy "$@" -var "project=$project" -var "region=$region"
 }

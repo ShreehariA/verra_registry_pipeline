@@ -66,4 +66,4 @@ None of these changes today's numbers.
 - **Each query on the SQL page copies the snapshot** into memory: 50 ms and 44 MB today. Queries take turns, so there's one copy at a time.
 - **A multi-year vintage counts in its first year** on charts by year.
 - **Not done yet:** names in the retirement details, splitting multi-value fields, and ISO country codes ([why](data-analysis.md#left-alone-on-purpose)).
-- **The cloud demo hasn't been deployed yet** ([what's unproven](deploy.md#not-yet-proved)).
+- **Parquet bytes can differ between CPU types.** Google Cloud's build holds the same data, row for row, but DuckDB compressed some pages differently there ([run log](run-log.md)).

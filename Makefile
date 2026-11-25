@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup check build query dashboard analysis clean
+.PHONY: help setup check lint types test build query dashboard analysis clean
 
 help: ## List the commands
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-10s %s\n", $$1, $$2}'
@@ -10,10 +10,16 @@ help: ## List the commands
 setup: ## Create .venv with the locked dependencies (needs uv)
 	$(UV) sync
 
-check: ## Lint, type-check and test: run before every commit
+check: lint types test ## Lint, type-check and test: run before every commit
+
+lint: ## Check style and formatting
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
+
+types: ## Check the pipeline's types
 	$(UV) run mypy
+
+test: ## Run the tests
 	$(UV) run pytest
 
 build: ## Build every layer from the newest complete snapshot in data/landing, or SNAPSHOT=YYYY-MM-DD

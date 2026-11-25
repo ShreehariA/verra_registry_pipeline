@@ -1,27 +1,45 @@
-# Every push and pull request: lint, types and every test, exactly as `make check` runs them locally;
-# then the cloud demo's Terraform is checked for format and validity, offline.
-name: check
+# Checks and tests on every push to main and every pull request. Nothing is deployed from here.
+name: CI
 on:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  check:
+  python:
+    name: Lint, types and tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           version: "0.11.19"
-      - run: make check
+          enable-cache: true
+      - name: Install the locked dependencies
+        run: uv sync --locked
+      - name: Lint
+        run: make lint
+      - name: Types
+        run: make types
+      - name: Tests
+        run: make test
   terraform:
+    name: Terraform format and validity
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.15.5"
-      - run: terraform -chdir=deploy fmt -check
-      - run: terraform -chdir=deploy init -backend=false
-      - run: terraform -chdir=deploy validate
+      - name: Format
+        run: terraform -chdir=deploy fmt -check
+      - name: Validate, offline
+        run: |
+          terraform -chdir=deploy init -backend=false
+          terraform -chdir=deploy validate
